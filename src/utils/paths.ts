@@ -11,7 +11,8 @@ function isBrainCliPkg(dir: string): boolean {
   if (!existsSync(pkg)) return false;
   try {
     const data = JSON.parse(readFileSync(pkg, "utf-8")) as { name?: string };
-    return data.name === "brain-cli";
+    // 兼容非 scoped（brain-cli）与 npm scoped（@<account>/brain-cli）包名
+    return data.name === "brain-cli" || (data.name ?? "").endsWith("/brain-cli");
   } catch {
     return false;
   }

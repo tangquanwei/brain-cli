@@ -1,5 +1,5 @@
 {
-  "name": "brain-cli",
+  "name": "@tangquanwei/brain-cli",
   "version": "0.1.0",
   "description": "🧠 2ndBrain CLI - 本地优先的第二大脑：Markdown + PARA + Git",
   "type": "module",
@@ -33,7 +33,8 @@
     "verify": "npm test && npm run typecheck && npm run build && node dist/cli.js links --check",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p web-ui"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web-ui",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
   },
   "engines": {
     "node": ">=20"
