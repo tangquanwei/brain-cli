@@ -49,8 +49,9 @@ function findPackageRoot(): string {
       try {
         const name = (JSON.parse(readFileSync(pkg, "utf8")) as { name?: string })
           .name;
-        // 兼容非 scoped（brain-cli）与 npm scoped（@<account>/brain-cli）包名
-        if (name === "brain-cli" || name?.endsWith("/brain-cli")) return dir;
+        // 包名兼容：brain-cli（仓库内）、braincli（npm 发布名）、@xxx/brain-cli（scoped）
+        if (name === "brain-cli" || name === "braincli" || name?.endsWith("/brain-cli"))
+          return dir;
       } catch {
         // 继续向上查找
       }

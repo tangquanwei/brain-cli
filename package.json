@@ -1,5 +1,5 @@
 {
-  "name": "@tangquanwei/brain-cli",
+  "name": "braincli",
   "version": "0.1.0",
   "description": "🧠 2ndBrain CLI - 本地优先的第二大脑：Markdown + PARA + Git",
   "type": "module",
