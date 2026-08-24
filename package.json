@@ -1,6 +1,6 @@
 {
   "name": "@qwtang/brain-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "🧠 2ndBrain CLI - 本地优先的第二大脑：Markdown + PARA + Git",
   "type": "module",
   "license": "Apache-2.0",
