@@ -1,0 +1,50 @@
+name: Markdown or Obsidian compatibility
+description: Report a syntax or vault-layout case that brain-cli does not handle correctly.
+title: "[Compatibility]: "
+labels:
+  - compatibility
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Compatibility surface
+      options:
+        - Standard Markdown link
+        - Obsidian WikiLink
+        - Heading reference
+        - Block reference
+        - Image or attachment embed
+        - Frontmatter
+        - Filesystem path
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Minimal fictional fixture
+      description: Provide the smallest Markdown and file tree that demonstrates the case.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current result
+      description: Include sanitized output from brain doctor, brain links, or a dry run.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected interpretation
+      description: Explain how Obsidian or the relevant Markdown renderer resolves the fixture.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: This fixture is synthetic and contains no private vault content.
+          required: true

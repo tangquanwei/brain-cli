@@ -1,0 +1,90 @@
+name: Bug report
+description: Report a reproducible CLI or WebUI problem using synthetic Markdown.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not upload a private vault or include credentials, personal paths, or private remotes.
+  - type: input
+    id: version
+    attributes:
+      label: brain-cli version
+      description: Output from brain --version.
+      placeholder: 0.1.1
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Output from node --version.
+      placeholder: v22.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation
+      options:
+        - npm global package
+        - npm link
+        - source checkout
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or WebUI action
+      description: Include the exact command with private paths replaced by placeholders.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Use fictional Markdown files and list the smallest steps that reproduce the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include sanitized output or screenshots when useful.
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: Approximate vault size
+      placeholder: 2,000 Markdown files
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety check
+      options:
+        - label: I used synthetic content and removed credentials, private paths, remotes, and personal note text.
+          required: true
+        - label: I checked existing Issues and Discussions for duplicates.
+          required: true

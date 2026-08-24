@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a focused improvement to a concrete Markdown vault workflow.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What concrete maintenance workflow is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Proposed workflow
+      description: Show the desired command or UI flow and its expected result.
+      placeholder: |
+        brain ...
+        Expected result: ...
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Expected read/write boundary
+      options:
+        - Read-only
+        - Dry-run preview followed by explicit write
+        - Writes Markdown files
+        - Writes Git history
+        - WebUI interaction
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: How do you handle this with an editor, Git, or another CLI today?
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project fit
+      options:
+        - label: The core workflow remains local-first and does not require cloud AI.
+          required: true
+        - label: The request can be discussed without sharing private note content.
+          required: true
