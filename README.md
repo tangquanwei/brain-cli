@@ -9,7 +9,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-![2ndBrain CLI: dashboard, link health, safe rename preview, and graph](https://raw.githubusercontent.com/tangquanwei/brain-cli/main/docs/screenshots/overview.gif)
+![2ndBrain CLI: dashboard, link health, note browser, and knowledge graph](https://raw.githubusercontent.com/tangquanwei/brain-cli/main/docs/screenshots/overview-en.gif)
 
 2ndBrain CLI works on ordinary Markdown files. It does not require a hosted account, a proprietary database, or a specific editor. Your notes stay in a directory you control.
 
