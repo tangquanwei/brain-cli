@@ -1,158 +1,156 @@
 # 🧠 2ndBrain CLI
 
-> 本地优先的「第二大脑」：Markdown + PARA + Git，一条命令管好你的知识库。
+**English** · [简体中文](https://github.com/tangquanwei/brain-cli/blob/main/docs/README_ZH.md)
 
-![npm](https://img.shields.io/npm/v/@qwtang/brain-cli?logo=npm&logoColor=white&label=npm)
-![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![Tests](https://img.shields.io/badge/tests-Vitest-6E9F18?logo=vitest&logoColor=white)
-![License](https://img.shields.io/badge/license-Apache--2.0-blue)
+> A local-first toolkit for keeping Markdown vaults healthy: safe refactors, link checks, Git backups, and an instant knowledge graph.
 
-`brain-cli` 是一个本地 Markdown 笔记管理工具：命令行快速捕获、回顾、体检链接，配上一个开箱即用的仪表盘、笔记浏览、知识图谱一应俱全。所有数据都在本地，笔记目录就是一个普通的 Git 仓库，备份、同步、加密完全由你掌控。
+[![CI](https://github.com/tangquanwei/brain-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/tangquanwei/brain-cli/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@qwtang/brain-cli)](https://www.npmjs.com/package/@qwtang/brain-cli)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-> 注：本工具只做本地 Markdown + Git 这一件事，并把它做好。
+![2ndBrain CLI: dashboard, link health, safe rename preview, and graph](https://raw.githubusercontent.com/tangquanwei/brain-cli/main/docs/screenshots/overview.gif)
 
-## ✨ 功能特性
+2ndBrain CLI works on ordinary Markdown files. It does not require a hosted account, a proprietary database, or a specific editor. Your notes stay in a directory you control.
 
-- 💡 **快速捕获** —— `brain capture` 一条命令落盘，frontmatter、目录归属全自动
-- 🗂 **PARA 结构** —— `projects / areas / resources / archives`（外加 `questions`），`brain init` 一键初始化
-- 🔗 **链接体检** —— 断链、缺失标题、非标准 WikiLink、孤岛笔记，`brain links` 一目了然
-- ✏️ **安全重构** —— 重命名 / 移动笔记时自动重写所有引用链接、同步图片目录
-- 🕸 **知识图谱** —— 语义链接 + 文件夹层级双重视图，cytoscape 力导向布局，支持局部 1/2 跳探索
-- 🌐 **WebUI** —— 仪表盘 / 笔记 / 回顾 / 链接健康 / 图谱；内置 chokidar 监听 + SSE 推送，**文件一变页面自动刷新**
-- 💾 **Git 自动备份** —— 后台守护进程定时提交、按需推送，且**严格只动 notes 仓库**（见[安全边界](#-git-安全边界)）
+## Why use it?
 
-## 📸 截图
+- **Refactor safely.** Rename or move notes while updating relative Markdown links and matching image directories.
+- **Catch decay early.** Find broken links, missing headings or blocks, missing embeds, ambiguous WikiLinks, backlinks, and orphan notes.
+- **Keep recoverable history.** Commit and optionally push only the configured notes repository.
+- **See the structure.** Browse notes, link health, reviews, and a local knowledge graph in one WebUI.
 
-| 仪表盘 | 笔记浏览 |
-| --- | --- |
-| ![仪表盘](docs/screenshots/dashboard.png) | ![笔记](docs/screenshots/notes.png) |
+## Quick start
 
-| 链接健康 | 知识图谱 |
-| --- | --- |
-| ![链接健康](docs/screenshots/links.png) | ![知识图谱](docs/screenshots/graph.png) |
-
-## 🚀 快速开始
-
-### 方式一：npm 安装（推荐）
+Requires Node.js 20 or newer.
 
 ```bash
 npm install -g @qwtang/brain-cli
+
+mkdir my-brain
+cd my-brain
+brain init
+brain web --open
 ```
 
-### 方式二：源码安装
+A global installation treats the current working directory as the workspace. Run `brain` inside the workspace that contains your notes and optional `.env`.
+
+For an existing Markdown or Obsidian vault, inspect it directly—no initialization or migration required:
+
+```bash
+brain doctor /absolute/path/to/your/notes
+brain --vault /absolute/path/to/your/notes web --open
+```
+
+Both `doctor` and link checks are read-only by default:
+
+```bash
+brain --vault /absolute/path/to/your/notes links --stats --orphans
+```
+
+## Reproducible demo Vault
+
+The repository includes a small, fictional vault with no personal content. Use it to evaluate the scanner and WebUI before pointing the CLI at your own notes.
 
 ```bash
 git clone https://github.com/tangquanwei/brain-cli.git
 cd brain-cli
 npm install
 npm run build
-npm link          # 可选：把 `brain` 放到 PATH
+
+node dist/cli.js doctor "$PWD/examples/demo-vault/notes"
+node dist/cli.js --vault "$PWD/examples/demo-vault/notes" web --open
 ```
 
-初始化并启动：
+Verified scan result:
 
-```bash
-brain init        # 创建 PARA 目录结构
-brain web --open  # 启动 WebUI 并在浏览器打开（默认 http://127.0.0.1:3739）
+```text
+Notes:                  10
+Internal links:         16
+Broken links:            0
+Missing headings/blocks: 0
+Missing images/assets:   0
+Ambiguous WikiLinks:     0
+Orphans:                 0
 ```
 
-也可以不全局链接，直接 `node dist/cli.js <command>` 或开发模式 `npm run dev -- <command>`。
+See [the demo Vault README](examples/demo-vault/README.md) for its structure and expected relationships.
 
-## ⌨️ 命令一览
+## Works alongside your tools
 
-| 命令 | 说明 |
+| Tool | Primary responsibility |
 | --- | --- |
-| `brain init` | 🏗️ 初始化第二大脑目录结构 |
-| `brain status` | 📊 查看笔记统计与 Git 状态 |
-| `brain capture <title> [-c 内容] [-t 标签]` | 💡 快速本地捕获想法（别名 `brain new`） |
-| `brain review week\|month\|tags <标签>\|random [n]` | 📚 笔记回顾 |
-| `brain rename <路径> <新名称>` | ✏️ 重命名笔记，自动同步图片目录和引用链接 |
-| `brain move <路径> <新路径>` | 🚚 移动笔记，自动重写相对链接 |
-| `brain links [--check]` | 🔗 检查标准 Markdown 链接（断链 / 缺失标题 / 孤岛） |
-| `brain backlinks <笔记>` | ↩️ 查看某篇笔记的反向链接 |
-| `brain backup [-m 消息] [--push]` | 💾 仅提交（可选推送）notes Git 仓库 |
-| `brain watch start\|stop\|status` | 🤖 后台守护进程：notes 变更自动提交 / 定时推送 |
-| `brain web [--open] [-p 端口]` | 🌐 启动统一 WebUI |
+| Obsidian | Write and browse Markdown with an editor-first experience |
+| VS Code | Edit files, scripts, templates, and Git changes |
+| Git | Store version history and synchronize a repository |
+| **2ndBrain CLI** | Capture notes, safely refactor links, inspect vault health, automate notes-only backups, and open a local graph |
 
-## ⚙️ 配置
+2ndBrain CLI does not try to replace your editor or Git client. It handles maintenance tasks that become risky or repetitive as a Markdown vault grows.
 
-在仓库根目录创建 `.env`（参考 `.env.example`）：
+## Core commands
 
-| 变量 | 默认值 | 说明 |
+| Command | What it does | Writes files? |
 | --- | --- | --- |
-| `NOTES_DIR` | `notes` | 笔记目录（相对仓库根目录或绝对路径） |
-| `GIT_AUTO_COMMIT` | `true` | 捕获 / 移动后自动提交 notes |
-| `COMMIT_INTERVAL` | `30` | 守护进程提交间隔（秒） |
-| `PUSH_INTERVAL` | `900` | 守护进程推送间隔（秒） |
-| `WATCH_ENABLED` | `true` | 是否启用后台守护 |
+| `brain doctor <path>` | Inspect an existing vault without initialization | No |
+| `brain init` | Create the default workspace and PARA directories | Yes |
+| `brain capture <title>` | Create a Markdown note with frontmatter | Yes |
+| `brain links --stats --orphans` | Inspect links and orphan notes | No |
+| `brain backlinks <note>` | List notes linking to a note | No |
+| `brain rename <old> <new> --dry-run` | Preview a safe rename and link updates | No |
+| `brain rename <old> <new>` | Rename a note and update links/images | Yes |
+| `brain move <old> <new> --dry-run` | Preview a move and relative-link updates | No |
+| `brain backup [--push]` | Commit, and optionally push, the notes repository | Git only |
+| `brain review` | Review notes using local metadata | No |
+| `brain web --open` | Start the local dashboard, editor, checks, and graph | Only when you use an editing action |
+| `brain watch start` | Start background notes maintenance | Yes |
 
-## 🌐 WebUI
+Run `brain <command> --help` for all options.
 
-`brain web` 启动一个只监听 `127.0.0.1` 的本地服务，前端为打包成单文件的 React 应用：
+## Configuration
 
-- **仪表盘**：笔记统计、链接健康概览、Git 备份状态、最近笔记
-- **笔记**：目录树 + 搜索 + Markdown 阅读器 + 反向链接，支持重命名 / 移动 / 一键在 VS Code 打开
-- **回顾**：本周 / 本月 / 随机漫步 / 按标签
-- **链接健康**：断链、缺失标题、非标准链接、孤岛笔记清单
-- **知识图谱**：文件夹节点（虚线框）把没有显式链接的笔记也连成整体；区域配色、标签过滤、局部 1/2 跳、归档 / 索引 / 孤岛开关
+Use the global `--vault <path>` option for one-off or existing vaults. Create a workspace-level `.env` when you want a persistent default (see `.env.example`). Resolution order is `--vault`, then `NOTES_DIR`, then `notes`.
 
-服务端通过 chokidar 监听笔记目录，变更经防抖后由 SSE（`/api/events`）推送到页面，**在 Obsidian / VS Code 里保存文件，WebUI 即刻刷新**。
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `NOTES_DIR` | `notes` | Markdown vault path, relative to the workspace or absolute |
+| `GIT_AUTO_COMMIT` | `true` | Automatically commit after supported write operations |
+| `COMMIT_INTERVAL` | `30` | Watcher commit interval in seconds |
+| `PUSH_INTERVAL` | `900` | Watcher push interval in seconds |
+| `WATCH_ENABLED` | `true` | Enable watcher behavior |
 
-## 🔒 Git 安全边界
+## Safety boundaries
 
-`brain backup` 与守护进程**只提交、只推送 `NOTES_DIR` 指向的笔记仓库**，永远不会触碰外层项目仓库、`blog/` 或其他目录。
+- `brain web` listens only on `127.0.0.1`; it is not exposed to the network by default.
+- `doctor`, link scans, backlinks, status, reviews, and `--dry-run` refactor previews are read-only.
+- `brain backup` and the watcher operate only on the Git repository at `NOTES_DIR`.
+- Rename and move operations update standard relative Markdown links and resolved WikiLinks. Check the dry run and keep Git history before a large refactor.
+- Obsidian note links, aliases, note embeds, image embeds, headings, and block references are supported. Duplicate short note names are reported as ambiguous; use a vault-relative WikiLink path to disambiguate.
 
-笔记目录通常是你自己的独立 Git 仓库（普通目录或 Git 子模块均可）：
+## Documentation
+
+- [Quick start](docs/guide/01-快速开始.md)
+- [CLI reference](docs/guide/02-CLI命令参考.md)
+- [Configuration](docs/guide/04-配置参考.md)
+- [Link-scan benchmark](docs/benchmarks/link-scan.md)
+- [Watcher](docs/guide/05-Watcher守护进程.md)
+- [Daily workflow](docs/guide/06-日常工作流.md)
+- [Roadmap](TODO.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [Release process](docs/RELEASING.md)
+
+## Development
 
 ```bash
-brain backup -m "Update notes" --push   # 只提交并推送 notes
+npm install
+npm test
+npm run typecheck
+npm run build
 ```
 
-如果笔记仓库以子模块形式挂在某个主项目下，子模块指针的提交由你在主项目中自行完成，`brain` 绝不代为操作。
+Issues and focused pull requests are welcome. If you are trying the project with a real vault, please share the editor, operating system, note count, and the first point of friction—without sharing private note content.
 
-## 🏗 技术栈
-
-| 技术 | 用途 |
-| --- | --- |
-| TypeScript | 全项目开发语言，CLI 与 WebUI 共用类型定义 |
-| commander | 命令行解析：子命令、选项、帮助信息 |
-| chokidar | 监听笔记目录文件变化，驱动自动提交与 WebUI 实时刷新 |
-| gray-matter | 解析笔记 frontmatter（标题、标签、日期） |
-| simple-git | notes 仓库的提交、推送、状态查询 |
-| React 19 | WebUI 前端框架 |
-| cytoscape | 知识图谱的力导向布局与交互渲染 |
-| tsup | 打包：CLI 产物 + WebUI 单文件 bundle |
-| Vitest | 单元测试框架 |
-
-## 🏛️ 项目结构
-```
-src/
-  cli.ts        # 命令入口（commander）
-  commands/     # init / capture / backup / review / rename / move / links / web …
-  graph/        # 链接图投影、过滤、目录树
-  utils/        # Markdown 链接解析、笔记索引、Git、路径安全
-  watcher/      # 后台守护进程与变更检测
-  web/          # 内置 HTTP 服务、数据接口、SSE 推送
-web-ui/         # React 前端（tsup 打包为 dist/web/app.global.js 单文件）
-tests/          # Vitest 单元测试
-```
-
-## 🛠 开发
-
-| 脚本 | 说明 |
-| --- | --- |
-| `npm run dev -- <command>` | tsx 直接运行源码 |
-| `npm test` / `npm run test:watch` | Vitest 单元测试 |
-| `npm run typecheck` | `tsc` 双工程（CLI + WebUI）类型检查 |
-| `npm run build` | tsup 打包 CLI 与 WebUI |
-| `npm run verify` | 测试 + 类型检查 + 构建 + 链接检查 |
-
----
-
-## 📝 License
+## License
 
 [Apache-2.0](LICENSE)
-
-如果它对你的知识管理有帮助，欢迎 Star ⭐ 与提 Issue。

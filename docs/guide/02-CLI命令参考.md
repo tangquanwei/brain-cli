@@ -1,140 +1,121 @@
 # 📖 CLI 命令参考
 
-所有命令通过 `node brain-cli/dist/cli.js <command>` (或全局链接后的 `brain <command>`) 调用。
-
 ```bash
-brain --help       # 查看所有命令
-brain --version    # 查看版本号
+brain --help
+brain --version
+brain --vault /path/to/vault <command>
 ```
 
----
+## 读写边界总览
 
-## init
+| 命令 | 默认边界 | 可能写入的内容 |
+| --- | --- | --- |
+| `brain doctor [path]` | 只读 | 无 |
+| `brain status` | 只读 | 无 |
+| `brain links` | 只读 | 仅 `--write` 写入 `.brain/links.json` |
+| `brain backlinks <note>` | 只读 | 无 |
+| `brain review ...` | 只读 | 无 |
+| `brain rename ... --dry-run` | 只读预览 | 无 |
+| `brain move ... --dry-run` | 只读预览 | 无 |
+| `brain init` | 写入 | 知识库目录和工作区模板目录 |
+| `brain capture <title>` | 写入 | Markdown 笔记；启用时提交知识库 Git |
+| `brain rename ...` | 写入 | 笔记、匹配附件目录和引用链接 |
+| `brain move ...` | 写入 | 笔记、匹配附件目录和引用链接 |
+| `brain backup [--push]` | Git 写入 | 仅知识库 Git 仓库 |
+| `brain watch start` | 持续写入 | PID/日志以及知识库 Git 提交、推送 |
+| `brain watch stop` | 进程控制 | Watcher PID/日志 |
+| `brain watch status` | 只读 | 无 |
+| `brain web` | 混合 | 浏览只读；捕获、重命名、移动等操作写入 |
 
-**🏗️ 初始化第二大脑目录结构**
+## 全局 `--vault`
 
-```bash
-brain init
-```
-
-创建 PARA 目录结构。并检查 `.env` 配置。首次使用应运行此命令。
-
----
-
-## capture
-
-**💡 快速捕获想法到本地笔记中**
-
-```bash
-brain capture <title> [选项]
-```
-
-### 参数
-
-| 参数 | 说明 |
-|------|------|
-| `<title>` | **必填** 笔记标题 |
-
-### 选项
-
-| 选项 | 缩写 | 默认值 | 说明 |
-|------|------|--------|------|
-| `--content` | `-c` | `""` | 笔记正文内容 |
-| `--tags` | `-t` | `""` | 标签，多个标签用逗号分隔 |
-| `--type` | — | `Fleeting` | 笔记类型：`Fleeting` / `Literature` / `Permanent` / `Project` |
-
-### 示例
+显式指定本次命令使用的知识库：
 
 ```bash
-# 最简用法——只有标题
-brain capture "灵感：用 AI 自动整理笔记"
-
-# 完整用法
-brain capture "TypeScript 类型守卫" \
-    --content "类型守卫本质是利用类型断言 narrows down..." \
-    --tags "TypeScript,编程,基础" \
-    --type Literature
+brain --vault /absolute/path/to/vault status
 ```
 
----
+相对路径以当前工作目录为基准。该选项优先于 `NOTES_DIR`，且不会修改 `.env`。
 
-## status
+## `doctor [path]`
 
-**📊 显示本地笔记与 Git 状态**
+无需初始化即可只读体检已有目录：
 
 ```bash
-brain status
+brain doctor /path/to/vault
+brain doctor /path/to/vault --json
+brain --vault /path/to/vault doctor
 ```
 
-显示总笔记数、notes Git 状态和 Brain 总控仓库状态。`brain backup` 只处理独立的 `notes/` 仓库。
+检查项包括 Markdown、标准链接、WikiLink、笔记嵌入、图片和附件、标题、块引用、歧义短名称及孤岛笔记。健康时退出码为 0；发现影响引用完整性的问题时为 1。
 
----
-
-## backup
-
-**💾 执行 Git 自动提交与备份**
+## `init`
 
 ```bash
-brain backup [选项]
+brain --vault /path/to/new-vault init
 ```
 
-### 选项
+创建 `projects`、`areas`、`resources`、`questions`、`archives`，并在工作区创建 `templates`。它不会自动创建 `.env`。
 
-| 选项 |缩写 | 说明 |
-|------|-----|------|
-| `--msg` | `-m` | 指定 Git 的 Commit Message |
-| `--push` | - | 一并执行 Git push，推送至远程仓库 |
-
-当前实现只处理 `notes/` 仓库：
-
-1. 在 `notes/` 子模块内提交笔记正文变更。
-2. 如果带 `--push`，只推送 `notes` 到其远程仓库。
-3. Brain 总控仓库、blog 和子模块指针必须使用独立的 Git 提交流程。
+## `capture <title>`
 
 ```bash
-brain backup -m "Update notes" --push
+brain --vault /path/to/vault capture "TypeScript 类型守卫" \
+  --content "正文" \
+  --tags "TypeScript,编程" \
+  --type Literature
 ```
 
----
+`--type` 支持 `Fleeting`、`Literature`、`Permanent`、`Project`。
 
-## watch
-
-**🤖 管理后台 Watcher（文件监听与自动备份）守护进程**
+## `links`
 
 ```bash
-brain watch <start|stop|status>
+brain --vault /path/to/vault links --stats --orphans
+brain --vault /path/to/vault links --check
+brain --vault /path/to/vault links --json
+brain --vault /path/to/vault links --write
 ```
 
-详细参见 [05-Watcher守护进程.md](./05-Watcher守护进程.md)。
+- 默认只读。
+- `--check` 在断链、缺失标题/块、缺失附件或歧义 WikiLink 时返回退出码 1。
+- `--write` 是唯一会写文件的选项，目标为 `<vault>/.brain/links.json`。
+- `--scope active|all` 控制孤岛列表范围。
 
----
+支持的 Obsidian 形式：
 
-## review
+- `[[Note]]`、`[[folder/Note]]`、`[[Note|Alias]]`
+- `[[Note#Heading]]`、`[[Note#^block-id]]`
+- `![[Note]]`、`![[image.png]]`
+- 标准 Markdown 图片与 `Note.md#heading` / `Note.md#^block-id`
 
-**🧠 回顾与翻阅已有笔记**
+如果短名称匹配多篇笔记，会报告歧义；改用知识库相对路径即可。
+
+## `rename` 与 `move`
 
 ```bash
-brain review <week|month|tags|random> [参数]
+brain --vault /path/to/vault rename "areas/Old.md" "New" --dry-run
+brain --vault /path/to/vault move "areas/Old.md" "resources/New.md" --dry-run
 ```
 
-回顾候选会自动忽略导航和说明文档：`README.md`、`index.md`、`_index.md`。其他以下划线开头的内容笔记仍会正常参与回顾。
+去掉 `--dry-run` 后才会写入。操作会重写已解析的标准 Markdown 笔记链接和 WikiLink，并移动与笔记同名或 `<name>.assets` 的附件目录。源和目标都必须位于知识库内。
 
-帮助你翻阅之前保存的本地笔记，唤醒记忆。
-
----
-
-## graph
-
-**🕸️ 展示标准 Markdown 双链知识图谱**
+## `backlinks <note>`
 
 ```bash
-brain graph [--open] [--port 3738] [--scope active|all] [--note <note>] [--depth 1|2]
+brain --vault /path/to/vault backlinks "areas/My Note.md"
 ```
 
-- `--scope active|all`：设置初始是否显示 archives，默认 `active`。
-- `--note <note>`：以相对路径或标题启动 Local Graph。
-- `--depth 1|2`：Local Graph 邻居深度，默认 1。
-- 页面支持知识图谱/目录树切换、共享搜索、PARA/标签过滤、索引与孤岛开关、全局/局部切换和 VS Code 打开。
-- Cytoscape 从本地依赖提供，不访问 CDN。
+只读显示标准 Markdown 与 WikiLink 反向链接。
 
-`brain graph` 和 `brain mindmap` 启动同一个页面：前者默认显示笔记链接关系，后者默认显示目录包含关系，页面内可以随时切换。
+## `status`、`review`、`backup`、`watch`、`web`
+
+```bash
+brain --vault /path/to/vault status
+brain --vault /path/to/vault review week
+brain --vault /path/to/vault backup -m "Update notes" --push
+brain --vault /path/to/vault watch start
+brain --vault /path/to/vault web --open
+```
+
+`backup` 和 Watcher 的 Git 操作严格限制在知识库自身的 Git 仓库。WebUI 只监听 `127.0.0.1`；浏览、搜索和图谱是只读的，只有显式编辑操作才写入。
