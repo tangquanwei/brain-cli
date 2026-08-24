@@ -1,5 +1,3 @@
-import { realpathSync } from "node:fs";
-import { resolve } from "node:path";
 import { simpleGit, type SimpleGit } from "simple-git";
 import { REPO_ROOT } from "./paths.js";
 import { settings } from "../config.js";
@@ -11,27 +9,14 @@ function notesGit(): SimpleGit {
   return simpleGit(settings.notesDir);
 }
 
-function canonicalPath(path: string): string {
-  let canonical: string;
-  try {
-    canonical = realpathSync(path);
-  } catch {
-    canonical = resolve(path);
-  }
-
-  // Git for Windows and Node can report the same path with different casing
-  // (for example, the drive letter or the runner's temporary directory).
-  // Windows path identity is case-insensitive, so compare canonical paths the
-  // same way without weakening the check on case-sensitive platforms.
-  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
-}
-
-async function checkRepo(git: SimpleGit, expectedRoot?: string): Promise<boolean> {
+async function checkRepo(git: SimpleGit): Promise<boolean> {
   try {
     if (!(await git.checkIsRepo())) return false;
-    if (!expectedRoot) return true;
-    const actualRoot = (await git.raw(["rev-parse", "--show-toplevel"])).trim();
-    return canonicalPath(actualRoot) === canonicalPath(expectedRoot);
+    // Ask Git whether its working directory is the repository root. Comparing
+    // --show-toplevel with a Node path is unreliable on Windows because Git can
+    // expand an 8.3 path such as RUNNER~1 to its long form.
+    const prefix = await git.raw(["rev-parse", "--show-prefix"]);
+    return prefix.trim() === "";
   } catch {
     return false;
   }
@@ -41,11 +26,11 @@ export async function isNotesRepo(): Promise<boolean> {
   // simple-git/Git searches parent directories. Require the discovered
   // worktree root to be exactly notes/, otherwise an uninitialized notes
   // directory could accidentally run Git commands against Brain itself.
-  return checkRepo(notesGit(), settings.notesDir);
+  return checkRepo(notesGit());
 }
 
 export async function isRepo(): Promise<boolean> {
-  return checkRepo(parentGit, REPO_ROOT);
+  return checkRepo(parentGit);
 }
 
 export async function ensureRepo(): Promise<boolean> {
