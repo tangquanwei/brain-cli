@@ -3,7 +3,13 @@ import { basename, dirname, relative, resolve } from "node:path";
 import { settings } from "../config.js";
 import { normalizeTags, parseFrontmatter } from "./frontmatter.js";
 
-const IGNORE_DIRS = new Set([".brain", ".git", ".obsidian", ".trash", "node_modules"]);
+const IGNORE_DIRS = new Set([
+  ".brain",
+  ".git",
+  ".obsidian",
+  ".trash",
+  "node_modules",
+]);
 
 export interface NoteNode {
   title: string;
@@ -11,6 +17,7 @@ export interface NoteNode {
   relPath: string;
   tags: string[];
   headings: string[];
+  blocks?: string[];
 }
 
 export function toPosixPath(path: string): string {
@@ -21,8 +28,11 @@ export function normalizeAbsPath(path: string): string {
   return toPosixPath(resolve(path));
 }
 
-export function notesRelative(path: string): string {
-  return toPosixPath(relative(settings.notesDir, path));
+export function notesRelative(
+  path: string,
+  notesDir = settings.notesDir,
+): string {
+  return toPosixPath(relative(notesDir, path));
 }
 
 function scanMarkdownFiles(dir: string, out: string[] = []): string[] {
@@ -51,6 +61,15 @@ export function extractHeadings(content: string): string[] {
   return headings;
 }
 
+export function extractBlockIds(content: string): string[] {
+  const blocks: string[] = [];
+  for (const line of content.split(/\r?\n/)) {
+    const match = line.match(/(?:^|\s)\^([A-Za-z0-9-]+)\s*$/);
+    if (match?.[1]) blocks.push(match[1]);
+  }
+  return blocks;
+}
+
 export function markdownHeadingSlug(title: string): string {
   return title
     .trim()
@@ -69,18 +88,76 @@ export function buildNoteIndex(notesDir = settings.notesDir): NoteNode[] {
     } catch {
       parsed = { data: {}, content: raw };
     }
-    const frontmatterTitle = typeof parsed.data.title === "string" ? parsed.data.title.trim() : "";
+    const frontmatterTitle =
+      typeof parsed.data.title === "string" ? parsed.data.title.trim() : "";
     return {
       title: frontmatterTitle || basename(path, ".md"),
       path,
       relPath: toPosixPath(relative(notesDir, path)),
       tags: normalizeTags(parsed.data.tags),
       headings: extractHeadings(parsed.content),
+      blocks: extractBlockIds(parsed.content),
     };
   });
 }
 
-export function resolveNoteArg(arg: string, nodes: NoteNode[]): NoteNode | undefined {
+export interface WikiNoteResolution {
+  node?: NoteNode;
+  ambiguous: boolean;
+}
+
+function withoutMarkdownExtension(path: string): string {
+  return path.toLowerCase().endsWith(".md") ? path.slice(0, -3) : path;
+}
+
+export function resolveWikiNoteTarget(
+  targetPath: string,
+  source: NoteNode,
+  nodes: NoteNode[],
+): WikiNoteResolution {
+  let decoded = targetPath;
+  try {
+    decoded = decodeURI(targetPath);
+  } catch {
+    // Keep the original text when the target contains malformed escapes.
+  }
+  const normalized = withoutMarkdownExtension(
+    toPosixPath(decoded.trim()).replace(/^\.\//, "").replace(/^\//, ""),
+  ).toLowerCase();
+  if (!normalized) return { node: source, ambiguous: false };
+
+  const exact = nodes.filter(
+    (node) =>
+      withoutMarkdownExtension(node.relPath).toLowerCase() === normalized,
+  );
+  if (exact.length === 1) return { node: exact[0], ambiguous: false };
+
+  const suffixMatches = nodes.filter((node) => {
+    const rel = withoutMarkdownExtension(node.relPath).toLowerCase();
+    return rel === normalized || rel.endsWith(`/${normalized}`);
+  });
+  if (suffixMatches.length === 1) {
+    return { node: suffixMatches[0], ambiguous: false };
+  }
+  if (suffixMatches.length > 1) return { ambiguous: true };
+
+  const byName = nodes.filter((node) => {
+    const basenameWithoutExtension = basename(node.path, ".md").toLowerCase();
+    return (
+      basenameWithoutExtension === normalized ||
+      node.title.trim().toLowerCase() === normalized
+    );
+  });
+  return {
+    node: byName.length === 1 ? byName[0] : undefined,
+    ambiguous: byName.length > 1,
+  };
+}
+
+export function resolveNoteArg(
+  arg: string,
+  nodes: NoteNode[],
+): NoteNode | undefined {
   const direct = normalizeAbsPath(resolve(process.cwd(), arg));
   const fromNotes = normalizeAbsPath(resolve(settings.notesDir, arg));
   return nodes.find((node) => {

@@ -24,12 +24,36 @@ export interface MarkdownLink {
 export interface WikiLink {
   raw: string;
   target: string;
+  path: string;
+  suffix: string;
+  alias?: string;
   start: number;
   end: number;
   embed: boolean;
+  kind: "note" | "asset";
 }
 
 const EXTERNAL_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+const OBSIDIAN_ASSET_EXTENSIONS = new Set([
+  ".avif",
+  ".bmp",
+  ".canvas",
+  ".csv",
+  ".gif",
+  ".jpeg",
+  ".jpg",
+  ".m4a",
+  ".mov",
+  ".mp3",
+  ".mp4",
+  ".pdf",
+  ".png",
+  ".svg",
+  ".txt",
+  ".wav",
+  ".webm",
+  ".webp",
+]);
 
 function maskCode(content: string): string {
   let fence: { char: "`" | "~"; length: number } | undefined;
@@ -209,15 +233,44 @@ export function extractWikiLinks(content: string): WikiLink[] {
   let match: RegExpExecArray | null;
   while ((match = re.exec(masked)) !== null) {
     const raw = content.slice(match.index, match.index + match[0].length);
-    const target = match[1] ?? "";
-    if (isNumericLiteral(target)) continue;
+    const inner = (match[1] ?? "").trim();
+    if (isNumericLiteral(inner)) continue;
+    const pipeIndex = inner.indexOf("|");
+    const target = (pipeIndex < 0 ? inner : inner.slice(0, pipeIndex)).trim();
+    const alias =
+      pipeIndex < 0
+        ? undefined
+        : inner.slice(pipeIndex + 1).trim() || undefined;
+    const hashIndex = target.indexOf("#");
+    const path = (hashIndex < 0 ? target : target.slice(0, hashIndex)).trim();
+    const suffix = hashIndex < 0 ? "" : target.slice(hashIndex);
+    const extension = extname(path).toLowerCase();
     links.push({
       raw,
       target,
+      path,
+      suffix,
+      alias,
       start: match.index,
       end: match.index + match[0].length,
       embed: raw.startsWith("!"),
+      kind:
+        extension &&
+        extension !== ".md" &&
+        OBSIDIAN_ASSET_EXTENSIONS.has(extension)
+          ? "asset"
+          : "note",
     });
   }
   return links;
+}
+
+export function formatWikiLink(
+  path: string,
+  suffix = "",
+  alias?: string,
+  embed = false,
+): string {
+  const target = `${path}${suffix}`;
+  return `${embed ? "!" : ""}[[${target}${alias ? `|${alias}` : ""}]]`;
 }

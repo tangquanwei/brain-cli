@@ -82,6 +82,7 @@ function graphFixture(): LinkGraph {
       byArea: {},
     },
     nonStandardLinks: [],
+    missingAssets: [],
   };
 }
 
@@ -91,9 +92,7 @@ describe("graph projection", () => {
     expect(JSON.stringify(projected)).not.toContain("/notes/");
     const linkEdges = projected.edges.filter((edge) => edge.kind !== "folder");
     expect(linkEdges).toHaveLength(2);
-    expect(
-      linkEdges.find((edge) => edge.kind === "semantic")?.count,
-    ).toBe(2);
+    expect(linkEdges.find((edge) => edge.kind === "semantic")?.count).toBe(2);
     const a = projected.nodes.find((node) => node.id === "areas/中文 A.md")!;
     expect(a.area).toBe("areas");
     expect(a.semanticDegree).toBe(2);

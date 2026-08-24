@@ -1,9 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import {
-  createServer,
-  type Server,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chokidar, { type FSWatcher } from "chokidar";
@@ -20,10 +16,7 @@ import { projectLinkGraph } from "../graph/projection.js";
 import { autoCommit, isNotesRepo, notesStatusShort } from "../utils/git.js";
 import { buildLinkGraph } from "../utils/linkGraph.js";
 import { buildNoteIndex, normalizeAbsPath } from "../utils/noteIndex.js";
-import {
-  applyNoteMovePlan,
-  buildNoteMovePlan,
-} from "../utils/rewriteLinks.js";
+import { applyNoteMovePlan, buildNoteMovePlan } from "../utils/rewriteLinks.js";
 import { openSafeNote, resolveSafeNote } from "../utils/safeOpenNote.js";
 import { getDashboard, listNotes, readNoteContent } from "./data.js";
 import { json, openBrowser, readJsonBody } from "./http.js";
@@ -47,10 +40,15 @@ function findPackageRoot(): string {
     const pkg = resolve(dir, "package.json");
     if (existsSync(pkg)) {
       try {
-        const name = (JSON.parse(readFileSync(pkg, "utf8")) as { name?: string })
-          .name;
+        const name = (
+          JSON.parse(readFileSync(pkg, "utf8")) as { name?: string }
+        ).name;
         // 包名兼容：brain-cli（仓库内）、braincli（npm 发布名）、@xxx/brain-cli（scoped）
-        if (name === "brain-cli" || name === "braincli" || name?.endsWith("/brain-cli"))
+        if (
+          name === "brain-cli" ||
+          name === "braincli" ||
+          name?.endsWith("/brain-cli")
+        )
           return dir;
       } catch {
         // 继续向上查找
@@ -128,10 +126,7 @@ async function moveNote(
     body: {
       ok: true,
       from: node.relPath,
-      to: target.newPath.replace(
-        normalizeAbsPath(settings.notesDir) + "/",
-        "",
-      ),
+      to: target.newPath.replace(normalizeAbsPath(settings.notesDir) + "/", ""),
       linkRewrites: plan.linkRewrites.length,
       assetMoves: plan.assetMoves.length,
     },
@@ -248,7 +243,9 @@ export function createWebServer(opts: WebServerOptions): Server {
           ...dashboard,
           git: {
             notesRepo,
-            pendingFiles: pending ? pending.split("\n").filter(Boolean).length : 0,
+            pendingFiles: pending
+              ? pending.split("\n").filter(Boolean).length
+              : 0,
           },
         });
         return;
@@ -303,6 +300,7 @@ export function createWebServer(opts: WebServerOptions): Server {
           edges: graph.edges.length,
           brokenLinks: graph.brokenLinks,
           missingHeadingLinks: graph.missingHeadingLinks,
+          missingAssets: graph.missingAssets,
           nonStandardLinks: graph.nonStandardLinks,
           orphanNotes: graph.orphanNotes.map((n) => n.relPath),
           orphanStats: graph.orphanStats,

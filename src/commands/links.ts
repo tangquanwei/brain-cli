@@ -41,16 +41,23 @@ function printProblems(graph: ReturnType<typeof buildLinkGraph>): void {
   }
 
   if (graph.missingHeadingLinks.length > 0) {
-    log(c.warn("\nMissing headings:"));
+    log(c.warn("\nMissing headings or block references:"));
     for (const edge of graph.missingHeadingLinks) {
       log(`- ${edge.fromRel} -> ${edge.href}${edge.suffix}`);
     }
   }
 
   if (graph.nonStandardLinks.length > 0) {
-    log(c.warn("\nNon-standard wikilinks:"));
+    log(c.warn("\nAmbiguous WikiLinks:"));
     for (const link of graph.nonStandardLinks) {
       log(`- ${link.file} -> ${link.raw}`);
+    }
+  }
+
+  if (graph.missingAssets.length > 0) {
+    log(c.warn("\nMissing images or attachments:"));
+    for (const asset of graph.missingAssets) {
+      log(`- ${asset.file} -> ${asset.target}`);
     }
   }
 }
@@ -76,8 +83,9 @@ export async function runLinks(opts: LinksOptions): Promise<void> {
       `笔记数: ${graph.nodes.length}`,
       `内部链接: ${graph.edges.length}`,
       `断链: ${graph.brokenLinks.length}`,
-      `缺失标题: ${graph.missingHeadingLinks.length}`,
-      `非标准链接: ${graph.nonStandardLinks.length}`,
+      `缺失标题/块: ${graph.missingHeadingLinks.length}`,
+      `缺失图片/附件: ${graph.missingAssets.length}`,
+      `歧义 WikiLink: ${graph.nonStandardLinks.length}`,
       `孤岛笔记: ${graph.orphanNotes.length}`,
       `活跃孤岛: ${graph.orphanStats.active.orphans}/${graph.orphanStats.active.notes}`,
     ].join("\n"),
@@ -101,7 +109,10 @@ export async function runLinks(opts: LinksOptions): Promise<void> {
 
   if (
     opts.check &&
-    (graph.brokenLinks.length > 0 || graph.missingHeadingLinks.length > 0)
+    (graph.brokenLinks.length > 0 ||
+      graph.missingHeadingLinks.length > 0 ||
+      graph.missingAssets.length > 0 ||
+      graph.nonStandardLinks.length > 0)
   ) {
     process.exitCode = 1;
   }

@@ -39,9 +39,10 @@ export function Dashboard({ dataVersion }: { dataVersion: number }) {
 
   const cards: [number, string][] = [
     [data.total, "笔记总数"],
-    ...data.areas.map(
-      (a): [number, string] => [a.count, AREA_NAMES[a.area] ?? a.area],
-    ),
+    ...data.areas.map((a): [number, string] => [
+      a.count,
+      AREA_NAMES[a.area] ?? a.area,
+    ]),
   ];
 
   return (
@@ -65,10 +66,13 @@ export function Dashboard({ dataVersion }: { dataVersion: number }) {
             <Pill kind="ok">无断链</Pill>
           )}
           <Pill kind={data.links.missingHeading ? "warn" : "ok"}>
-            {data.links.missingHeading} 缺失标题
+            {data.links.missingHeading} 缺失标题/块
+          </Pill>
+          <Pill kind={data.links.missingAssets ? "warn" : "ok"}>
+            {data.links.missingAssets} 缺失附件
           </Pill>
           <Pill kind={data.links.nonStandard ? "warn" : "ok"}>
-            {data.links.nonStandard} 非标准链接
+            {data.links.nonStandard} 歧义 WikiLink
           </Pill>
           <Pill kind="">{data.links.orphans} 孤岛</Pill>
           <Pill kind="">

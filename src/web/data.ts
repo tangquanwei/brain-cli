@@ -46,6 +46,7 @@ export interface DashboardData {
     edges: number;
     broken: number;
     missingHeading: number;
+    missingAssets: number;
     nonStandard: number;
     orphans: number;
     activeOrphans: number;
@@ -148,6 +149,7 @@ export function getDashboard(notesDir: string): DashboardData {
       edges: graph.edges.length,
       broken: graph.brokenLinks.length,
       missingHeading: graph.missingHeadingLinks.length,
+      missingAssets: graph.missingAssets.length,
       nonStandard: graph.nonStandardLinks.length,
       orphans: graph.orphanNotes.length,
       activeOrphans: graph.orphanStats.active.orphans,

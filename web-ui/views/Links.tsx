@@ -26,7 +26,10 @@ function Section({
           <tbody>
             {rows.map(([from, to], i) => (
               <tr key={i}>
-                <td className="clickable" onClick={() => navigate("notes", from)}>
+                <td
+                  className="clickable"
+                  onClick={() => navigate("notes", from)}
+                >
                   {from}
                 </td>
                 <td className="muted">{to}</td>
@@ -66,9 +69,7 @@ export function Links({ dataVersion }: { dataVersion: number }) {
             <div
               className="num"
               style={{
-                color: data.brokenLinks.length
-                  ? "var(--danger)"
-                  : "var(--ok)",
+                color: data.brokenLinks.length ? "var(--danger)" : "var(--ok)",
               }}
             >
               {data.brokenLinks.length}
@@ -77,7 +78,7 @@ export function Links({ dataVersion }: { dataVersion: number }) {
           </div>
           <div className="card">
             <div className="num">{data.missingHeadingLinks.length}</div>
-            <div className="lbl">缺失标题</div>
+            <div className="lbl">缺失标题/块</div>
           </div>
           <div className="card">
             <div className="num">{data.orphanNotes.length}</div>
@@ -94,7 +95,7 @@ export function Links({ dataVersion }: { dataVersion: number }) {
           ])}
         />
         <Section
-          title="缺失标题"
+          title="缺失标题或块引用"
           count={data.missingHeadingLinks.length}
           pillKind={data.missingHeadingLinks.length ? "warn" : "ok"}
           rows={data.missingHeadingLinks.map((e) => [
@@ -103,7 +104,16 @@ export function Links({ dataVersion }: { dataVersion: number }) {
           ])}
         />
         <Section
-          title="非标准 WikiLink"
+          title="缺失图片或附件"
+          count={data.missingAssets.length}
+          pillKind={data.missingAssets.length ? "warn" : "ok"}
+          rows={data.missingAssets.map((asset) => [
+            asset.file,
+            `→ ${asset.target}`,
+          ])}
+        />
+        <Section
+          title="歧义 WikiLink"
           count={data.nonStandardLinks.length}
           pillKind={data.nonStandardLinks.length ? "warn" : "ok"}
           rows={data.nonStandardLinks.map((l) => [l.file, l.raw])}

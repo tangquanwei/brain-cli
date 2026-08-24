@@ -19,6 +19,7 @@ export interface DashboardData {
     edges: number;
     broken: number;
     missingHeading: number;
+    missingAssets: number;
     nonStandard: number;
     orphans: number;
     activeOrphans: number;
@@ -77,6 +78,7 @@ export interface LinksData {
   edges: number;
   brokenLinks: LinkEdgeItem[];
   missingHeadingLinks: LinkEdgeItem[];
+  missingAssets: { file: string; raw: string; target: string }[];
   nonStandardLinks: { file: string; raw: string }[];
   orphanNotes: string[];
 }

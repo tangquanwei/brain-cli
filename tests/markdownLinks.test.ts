@@ -3,6 +3,7 @@ import {
   extractMarkdownLinks,
   extractWikiLinks,
   formatMarkdownDestination,
+  formatWikiLink,
 } from "../src/utils/markdownLinks.js";
 
 describe("markdownLinks", () => {
@@ -32,12 +33,44 @@ describe("markdownLinks", () => {
     expect(links.map((l) => l.href)).toEqual(["B.md"]);
   });
 
-  it("finds non-standard wikilinks", () => {
-    const links = extractWikiLinks("[[Padding]] and ![[image.png]]");
-    expect(links.map((l) => [l.target, l.embed])).toEqual([
-      ["Padding", false],
-      ["image.png", true],
+  it("parses Obsidian aliases, headings, blocks, and embeds", () => {
+    const links = extractWikiLinks(
+      "[[Padding#Intro|Read it]] [[#^block-1]] ![[image.png]]",
+    );
+    expect(
+      links.map((link) => ({
+        path: link.path,
+        suffix: link.suffix,
+        alias: link.alias,
+        embed: link.embed,
+        kind: link.kind,
+      })),
+    ).toEqual([
+      {
+        path: "Padding",
+        suffix: "#Intro",
+        alias: "Read it",
+        embed: false,
+        kind: "note",
+      },
+      {
+        path: "",
+        suffix: "#^block-1",
+        alias: undefined,
+        embed: false,
+        kind: "note",
+      },
+      {
+        path: "image.png",
+        suffix: "",
+        alias: undefined,
+        embed: true,
+        kind: "asset",
+      },
     ]);
+    expect(formatWikiLink("areas/Padding", "#Intro", "Read it", true)).toBe(
+      "![[areas/Padding#Intro|Read it]]",
+    );
   });
 
   it("does not treat token id arrays as wikilinks", () => {

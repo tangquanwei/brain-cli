@@ -1,8 +1,28 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { settings } from "../config.js";
-import { decodeLocalHref, extractMarkdownLinks, formatMarkdownDestination } from "./markdownLinks.js";
-import { buildNoteIndex, normalizeAbsPath, notesRelative, toPosixPath } from "./noteIndex.js";
+import {
+  decodeLocalHref,
+  extractMarkdownLinks,
+  extractWikiLinks,
+  formatMarkdownDestination,
+  formatWikiLink,
+} from "./markdownLinks.js";
+import {
+  buildNoteIndex,
+  normalizeAbsPath,
+  notesRelative,
+  resolveWikiNoteTarget,
+  toPosixPath,
+  type NoteNode,
+} from "./noteIndex.js";
 
 export interface AssetMove {
   old: string;
@@ -28,7 +48,7 @@ export function resolveNewNotePath(oldPath: string, newArg: string): string {
     if (!resolvedNew.endsWith(".md")) resolvedNew += ".md";
     return normalizeAbsPath(join(dirname(oldPath), resolvedNew));
   }
-  resolvedNew = resolve(process.cwd(), resolvedNew);
+  resolvedNew = resolve(settings.notesDir, resolvedNew);
   if (!resolvedNew.endsWith(".md")) resolvedNew += ".md";
   return normalizeAbsPath(resolvedNew);
 }
@@ -39,9 +59,14 @@ export function findAssetMoves(oldPath: string, newPath: string): AssetMove[] {
   const newStem = basename(newPath, ".md");
   const candidates: AssetMove[] = [
     { old: join(oldDir, oldStem), new: join(dirname(newPath), newStem) },
-    { old: join(oldDir, `${oldStem}.assets`), new: join(dirname(newPath), `${newStem}.assets`) },
+    {
+      old: join(oldDir, `${oldStem}.assets`),
+      new: join(dirname(newPath), `${newStem}.assets`),
+    },
   ];
-  return candidates.filter(({ old }) => existsSync(old) && statSync(old).isDirectory());
+  return candidates.filter(
+    ({ old }) => existsSync(old) && statSync(old).isDirectory(),
+  );
 }
 
 function rewriteContentLinks(
@@ -51,15 +76,27 @@ function rewriteContentLinks(
   newTarget: string,
 ): { content: string; rewrites: LinkRewrite[] } {
   const links = extractMarkdownLinks(content);
-  const replacements: { start: number; end: number; value: string; rewrite: LinkRewrite }[] = [];
+  const replacements: {
+    start: number;
+    end: number;
+    value: string;
+    rewrite: LinkRewrite;
+  }[] = [];
 
   for (const link of links) {
     if (link.kind !== "note") continue;
-    const resolved = normalizeAbsPath(resolve(dirname(sourceFile), decodeLocalHref(link.href)));
+    const resolved = normalizeAbsPath(
+      resolve(dirname(sourceFile), decodeLocalHref(link.href)),
+    );
     if (resolved !== oldTarget) continue;
 
     const newHref = toPosixPath(relative(dirname(sourceFile), newTarget));
-    const destination = formatMarkdownDestination(newHref, link.suffix, link.title, link.angleWrapped);
+    const destination = formatMarkdownDestination(
+      newHref,
+      link.suffix,
+      link.title,
+      link.angleWrapped,
+    );
     const prefix = link.image ? "!" : "";
     const newRaw = `${prefix}[${link.text}](${destination})`;
     replacements.push({
@@ -73,9 +110,68 @@ function rewriteContentLinks(
   let rewritten = content;
   for (const replacement of replacements.reverse()) {
     rewritten =
-      rewritten.slice(0, replacement.start) + replacement.value + rewritten.slice(replacement.end);
+      rewritten.slice(0, replacement.start) +
+      replacement.value +
+      rewritten.slice(replacement.end);
   }
-  return { content: rewritten, rewrites: replacements.map((r) => r.rewrite).reverse() };
+  return {
+    content: rewritten,
+    rewrites: replacements.map((r) => r.rewrite).reverse(),
+  };
+}
+
+function rewriteContentWikiLinks(
+  content: string,
+  sourceFile: string,
+  oldTarget: string,
+  newTarget: string,
+  nodes: NoteNode[],
+): { content: string; rewrites: LinkRewrite[] } {
+  const source = nodes.find(
+    (node) => normalizeAbsPath(node.path) === normalizeAbsPath(sourceFile),
+  );
+  if (!source) return { content, rewrites: [] };
+
+  const replacements: {
+    start: number;
+    end: number;
+    value: string;
+    rewrite: LinkRewrite;
+  }[] = [];
+  const newWikiPath = toPosixPath(
+    relative(settings.notesDir, newTarget),
+  ).replace(/\.md$/i, "");
+
+  for (const link of extractWikiLinks(content)) {
+    if (link.kind !== "note") continue;
+    const resolution = resolveWikiNoteTarget(link.path, source, nodes);
+    if (normalizeAbsPath(resolution.node?.path ?? "") !== oldTarget) continue;
+
+    const newRaw = formatWikiLink(
+      newWikiPath,
+      link.suffix,
+      link.alias,
+      link.embed,
+    );
+    replacements.push({
+      start: link.start,
+      end: link.end,
+      value: newRaw,
+      rewrite: { file: sourceFile, oldRaw: link.raw, newRaw },
+    });
+  }
+
+  let rewritten = content;
+  for (const replacement of replacements.reverse()) {
+    rewritten =
+      rewritten.slice(0, replacement.start) +
+      replacement.value +
+      rewritten.slice(replacement.end);
+  }
+  return {
+    content: rewritten,
+    rewrites: replacements.map((replacement) => replacement.rewrite).reverse(),
+  };
 }
 
 function rewriteMovedNoteAssetLinks(
@@ -85,16 +181,33 @@ function rewriteMovedNoteAssetLinks(
   assetMoves: AssetMove[],
 ): { content: string; rewrites: LinkRewrite[] } {
   const links = extractMarkdownLinks(content);
-  const replacements: { start: number; end: number; value: string; rewrite: LinkRewrite }[] = [];
+  const replacements: {
+    start: number;
+    end: number;
+    value: string;
+    rewrite: LinkRewrite;
+  }[] = [];
 
   for (const link of links) {
-    if (link.kind === "external" || link.kind === "anchor" || link.kind === "unknown") continue;
+    if (
+      link.kind === "external" ||
+      link.kind === "anchor" ||
+      link.kind === "unknown"
+    )
+      continue;
 
-    const oldResolved = normalizeAbsPath(resolve(dirname(oldPath), decodeLocalHref(link.href)));
+    const oldResolved = normalizeAbsPath(
+      resolve(dirname(oldPath), decodeLocalHref(link.href)),
+    );
     let newResolved = oldResolved;
     for (const assetMove of assetMoves) {
-      if (oldResolved === assetMove.old || oldResolved.startsWith(`${assetMove.old}/`)) {
-        newResolved = normalizeAbsPath(`${assetMove.new}${oldResolved.slice(assetMove.old.length)}`);
+      if (
+        oldResolved === assetMove.old ||
+        oldResolved.startsWith(`${assetMove.old}/`)
+      ) {
+        newResolved = normalizeAbsPath(
+          `${assetMove.new}${oldResolved.slice(assetMove.old.length)}`,
+        );
         break;
       }
     }
@@ -102,7 +215,12 @@ function rewriteMovedNoteAssetLinks(
     const newHref = toPosixPath(relative(dirname(newPath), newResolved));
     if (newHref === link.href) continue;
 
-    const destination = formatMarkdownDestination(newHref, link.suffix, link.title, link.angleWrapped);
+    const destination = formatMarkdownDestination(
+      newHref,
+      link.suffix,
+      link.title,
+      link.angleWrapped,
+    );
     const prefix = link.image ? "!" : "";
     const newRaw = `${prefix}[${link.text}](${destination})`;
     replacements.push({
@@ -116,48 +234,105 @@ function rewriteMovedNoteAssetLinks(
   let rewritten = content;
   for (const replacement of replacements.reverse()) {
     rewritten =
-      rewritten.slice(0, replacement.start) + replacement.value + rewritten.slice(replacement.end);
+      rewritten.slice(0, replacement.start) +
+      replacement.value +
+      rewritten.slice(replacement.end);
   }
-  return { content: rewritten, rewrites: replacements.map((r) => r.rewrite).reverse() };
+  return {
+    content: rewritten,
+    rewrites: replacements.map((r) => r.rewrite).reverse(),
+  };
 }
 
-export function buildNoteMovePlan(oldPath: string, newPath: string): NoteMovePlan {
+export function buildNoteMovePlan(
+  oldPath: string,
+  newPath: string,
+): NoteMovePlan {
   const normalizedOld = normalizeAbsPath(oldPath);
   const normalizedNew = normalizeAbsPath(newPath);
   const assetMoves = findAssetMoves(normalizedOld, normalizedNew);
   const linkRewrites: LinkRewrite[] = [];
 
-  for (const node of buildNoteIndex(settings.notesDir)) {
+  const nodes = buildNoteIndex(settings.notesDir);
+  for (const node of nodes) {
     const raw = readFileSync(node.path, "utf8");
-    const result = rewriteContentLinks(raw, node.path, normalizedOld, normalizedNew);
-    linkRewrites.push(...result.rewrites);
+    const markdownResult = rewriteContentLinks(
+      raw,
+      node.path,
+      normalizedOld,
+      normalizedNew,
+    );
+    const wikiResult = rewriteContentWikiLinks(
+      markdownResult.content,
+      node.path,
+      normalizedOld,
+      normalizedNew,
+      nodes,
+    );
+    linkRewrites.push(...markdownResult.rewrites, ...wikiResult.rewrites);
   }
 
   const movedRaw = readFileSync(normalizedOld, "utf8");
-  const incomingResult = rewriteContentLinks(movedRaw, normalizedOld, normalizedOld, normalizedNew);
-  const assetResult = rewriteMovedNoteAssetLinks(
+  const incomingResult = rewriteContentLinks(
+    movedRaw,
+    normalizedOld,
+    normalizedOld,
+    normalizedNew,
+  );
+  const incomingWikiResult = rewriteContentWikiLinks(
     incomingResult.content,
+    normalizedOld,
+    normalizedOld,
+    normalizedNew,
+    nodes,
+  );
+  const assetResult = rewriteMovedNoteAssetLinks(
+    incomingWikiResult.content,
     normalizedOld,
     normalizedNew,
     assetMoves,
   );
   linkRewrites.push(
-    ...assetResult.rewrites.map((rewrite) => ({ ...rewrite, file: normalizedOld })),
+    ...assetResult.rewrites.map((rewrite) => ({
+      ...rewrite,
+      file: normalizedOld,
+    })),
   );
 
-  return { oldPath: normalizedOld, newPath: normalizedNew, assetMoves, linkRewrites };
+  return {
+    oldPath: normalizedOld,
+    newPath: normalizedNew,
+    assetMoves,
+    linkRewrites,
+  };
 }
 
 export function applyNoteMovePlan(plan: NoteMovePlan): void {
   const updates = new Map<string, string>();
+  const nodes = buildNoteIndex(settings.notesDir);
 
-  for (const node of buildNoteIndex(settings.notesDir)) {
+  for (const node of nodes) {
     const raw = readFileSync(node.path, "utf8");
-    const result = rewriteContentLinks(raw, node.path, plan.oldPath, plan.newPath);
-    if (result.rewrites.length > 0) updates.set(node.path, result.content);
+    const markdownResult = rewriteContentLinks(
+      raw,
+      node.path,
+      plan.oldPath,
+      plan.newPath,
+    );
+    const wikiResult = rewriteContentWikiLinks(
+      markdownResult.content,
+      node.path,
+      plan.oldPath,
+      plan.newPath,
+      nodes,
+    );
+    if (markdownResult.rewrites.length > 0 || wikiResult.rewrites.length > 0) {
+      updates.set(node.path, wikiResult.content);
+    }
   }
 
-  const movedRaw = updates.get(plan.oldPath) ?? readFileSync(plan.oldPath, "utf8");
+  const movedRaw =
+    updates.get(plan.oldPath) ?? readFileSync(plan.oldPath, "utf8");
   const assetResult = rewriteMovedNoteAssetLinks(
     movedRaw,
     plan.oldPath,
