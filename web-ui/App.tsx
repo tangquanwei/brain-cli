@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import { Modal } from "./components/Modal";
 import { ToastProvider, useToast } from "./components/Toast";
+import { I18nProvider, useI18n, type TranslationKey } from "./i18n";
 import { Dashboard } from "./views/Dashboard";
 import { GraphView } from "./views/Graph";
 import { Links } from "./views/Links";
@@ -9,11 +10,11 @@ import { Notes } from "./views/Notes";
 import { Review } from "./views/Review";
 
 const VIEWS = [
-  { key: "dashboard", icon: "📊", label: "仪表盘" },
-  { key: "notes", icon: "📝", label: "笔记" },
-  { key: "review", icon: "📚", label: "回顾" },
-  { key: "links", icon: "🔗", label: "链接健康" },
-  { key: "graph", icon: "🕸️", label: "知识图谱" },
+  { key: "dashboard", icon: "📊", label: "nav.dashboard" },
+  { key: "notes", icon: "📝", label: "nav.notes" },
+  { key: "review", icon: "📚", label: "nav.review" },
+  { key: "links", icon: "🔗", label: "nav.links" },
+  { key: "graph", icon: "🕸️", label: "nav.graph" },
 ] as const;
 
 type ViewKey = (typeof VIEWS)[number]["key"];
@@ -26,7 +27,9 @@ export interface Route {
 function parseHash(): Route {
   const hash = location.hash.replace(/^#\/?/, "");
   const [view, ...rest] = hash.split("/");
-  const key = VIEWS.some((v) => v.key === view) ? (view as ViewKey) : "dashboard";
+  const key = VIEWS.some((v) => v.key === view)
+    ? (view as ViewKey)
+    : "dashboard";
   return {
     view: key,
     param: rest.length ? decodeURIComponent(rest.join("/")) : null,
@@ -45,6 +48,7 @@ function CaptureModal({
   onCaptured: (id: string) => void;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [title, setTitle] = useState("");
   const [type, setType] = useState("Fleeting");
   const [tags, setTags] = useState("");
@@ -53,7 +57,7 @@ function CaptureModal({
 
   const submit = async () => {
     if (!title.trim()) {
-      toast("标题不能为空");
+      toast(t("capture.titleRequired"));
       return;
     }
     setBusy(true);
@@ -61,10 +65,13 @@ function CaptureModal({
       const result = await api.capture({
         title: title.trim(),
         type,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
         content,
       });
-      toast("✅ 已捕获");
+      toast(t("capture.success"));
       onCaptured(result.id);
     } catch (e) {
       toast((e as Error).message);
@@ -73,27 +80,27 @@ function CaptureModal({
   };
 
   return (
-    <Modal title="💡 捕获想法" onClose={onClose}>
+    <Modal title={t("capture.modalTitle")} onClose={onClose}>
       <div className="field">
-        <label>标题</label>
+        <label>{t("capture.title")}</label>
         <input
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="笔记标题"
+          placeholder={t("capture.titlePlaceholder")}
         />
       </div>
       <div className="field">
-        <label>类型</label>
+        <label>{t("capture.type")}</label>
         <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option>Fleeting</option>
-          <option>Literature</option>
-          <option>Permanent</option>
-          <option>Project</option>
+          <option value="Fleeting">{t("capture.typeFleeting")}</option>
+          <option value="Literature">{t("capture.typeLiterature")}</option>
+          <option value="Permanent">{t("capture.typePermanent")}</option>
+          <option value="Project">{t("capture.typeProject")}</option>
         </select>
       </div>
       <div className="field">
-        <label>标签（逗号分隔）</label>
+        <label>{t("capture.tags")}</label>
         <input
           value={tags}
           onChange={(e) => setTags(e.target.value)}
@@ -101,19 +108,19 @@ function CaptureModal({
         />
       </div>
       <div className="field">
-        <label>正文</label>
+        <label>{t("capture.content")}</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="想法内容…"
+          placeholder={t("capture.contentPlaceholder")}
         />
       </div>
       <div className="actions">
         <button className="btn" onClick={onClose}>
-          取消
+          {t("common.cancel")}
         </button>
         <button className="btn primary" disabled={busy} onClick={submit}>
-          捕获
+          {t("capture.submit")}
         </button>
       </div>
     </Modal>
@@ -121,6 +128,7 @@ function CaptureModal({
 }
 
 function Shell() {
+  const { language, setLanguage, t } = useI18n();
   const [route, setRoute] = useState<Route>(parseHash);
   const [capturing, setCapturing] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
@@ -153,18 +161,46 @@ function Shell() {
             onClick={() => navigate(v.key)}
           >
             <span className="icon">{v.icon}</span>
-            <span className="txt">{v.label}</span>
+            <span className="txt">{t(v.label as TranslationKey)}</span>
           </button>
         ))}
         <div className="spacer" />
+        <div
+          className="language-control"
+          role="group"
+          aria-label={t("language.label")}
+        >
+          <button
+            type="button"
+            className={language === "zh" ? "active" : ""}
+            aria-pressed={language === "zh"}
+            title={t("language.zh")}
+            onClick={() => setLanguage("zh")}
+          >
+            中
+          </button>
+          <button
+            type="button"
+            className={language === "en" ? "active" : ""}
+            aria-pressed={language === "en"}
+            title={t("language.en")}
+            onClick={() => setLanguage("en")}
+          >
+            EN
+          </button>
+        </div>
         <button className="capture-btn" onClick={() => setCapturing(true)}>
-          ＋ <span>捕获想法</span>
+          ＋ <span>{t("nav.capture")}</span>
         </button>
       </nav>
       <main className="main">
         {route.view === "dashboard" && <Dashboard dataVersion={dataVersion} />}
         {route.view === "notes" && (
-          <Notes noteId={route.param} dataVersion={dataVersion} onMutated={mutated} />
+          <Notes
+            noteId={route.param}
+            dataVersion={dataVersion}
+            onMutated={mutated}
+          />
         )}
         {route.view === "review" && <Review />}
         {route.view === "links" && <Links dataVersion={dataVersion} />}
@@ -188,8 +224,10 @@ function Shell() {
 
 export function App() {
   return (
-    <ToastProvider>
-      <Shell />
-    </ToastProvider>
+    <I18nProvider>
+      <ToastProvider>
+        <Shell />
+      </ToastProvider>
+    </I18nProvider>
   );
 }

@@ -3,10 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import { navigate } from "../App";
 import { useToast } from "../components/Toast";
-import {
-  filterGraphView,
-  localGraphIds,
-} from "../../src/graph/filters";
+import { useI18n, type TranslationKey } from "../i18n";
+import { filterGraphView, localGraphIds } from "../../src/graph/filters";
 import type { GraphViewData, GraphViewNode } from "../types";
 
 const COLORS: Record<string, string> = {
@@ -16,6 +14,15 @@ const COLORS: Record<string, string> = {
   questions: "#f59e0b",
   archives: "#64748b",
   root: "#06b6d4",
+};
+
+const AREA_LABELS: Record<string, TranslationKey> = {
+  projects: "area.projects",
+  areas: "area.areas",
+  resources: "area.resources",
+  questions: "area.questions",
+  archives: "area.archives",
+  root: "area.root",
 };
 
 function ink() {
@@ -92,6 +99,7 @@ export function GraphView({
   dataVersion: number;
 }) {
   const toast = useToast();
+  const { language, t } = useI18n();
   const [data, setData] = useState<GraphViewData | null>(null);
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -105,7 +113,6 @@ export function GraphView({
     depth: 1,
   });
   const [selectedId, setSelectedId] = useState<string | null>(noteId);
-  const [status, setStatus] = useState("加载中…");
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const lastTapRef = useRef<{ id: string | null; time: number }>({
@@ -133,10 +140,23 @@ export function GraphView({
     [data, selectedId],
   );
 
+  const status = filtered
+    ? t("graph.status", {
+        nodes: filtered.nodes.length,
+        edges: filtered.edges.length,
+      })
+    : t("common.loading");
+  const selectedAreaLabel = selectedNode
+    ? (() => {
+        const areaKey = AREA_LABELS[selectedNode.area];
+        return areaKey ? t(areaKey) : selectedNode.area;
+      })()
+    : "";
+
   const openNote = (id: string) =>
     api
       .open(id)
-      .then(() => toast("已在 VS Code 打开"))
+      .then(() => toast(t("common.openedInVSCode")))
       .catch((e) => toast((e as Error).message));
 
   const selectNode = (id: string | null) => {
@@ -236,7 +256,11 @@ export function GraphView({
         { selector: ".muted", style: { opacity: 0.1 } },
         {
           selector: "node.current",
-          style: { "border-width": 4, "border-color": theme.current, "z-index": 20 },
+          style: {
+            "border-width": 4,
+            "border-color": theme.current,
+            "z-index": 20,
+          },
         },
         {
           selector: ".incoming",
@@ -280,23 +304,20 @@ export function GraphView({
       }
     });
     if (cy.nodes().length) {
-      cy
-        .layout({
-          name: "cose",
-          animate: false,
-          randomize: true,
-          fit: true,
-          padding: 35,
-          nodeRepulsion: 7000,
-          idealEdgeLength: 85,
-          edgeElasticity: 100,
-          gravity: 0.25,
-          numIter: 700,
-        })
-        .run();
+      cy.layout({
+        name: "cose",
+        animate: false,
+        randomize: true,
+        fit: true,
+        padding: 35,
+        nodeRepulsion: 7000,
+        idealEdgeLength: 85,
+        edgeElasticity: 100,
+        gravity: 0.25,
+        numIter: 700,
+      }).run();
     }
     cyRef.current = cy;
-    setStatus(`${filtered.nodes.length} 节点 · ${filtered.edges.length} 边`);
     if (selectedId && cy.getElementById(selectedId).length) {
       // 保持选中高亮
       cy.elements().addClass("muted");
@@ -312,118 +333,116 @@ export function GraphView({
       cyRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered]);
+  }, [filtered, language]);
 
   const relayout = () => {
     const cy = cyRef.current;
     if (!cy || !cy.nodes().length) return;
-    cy
-      .layout({
-        name: "cose",
-        animate: false,
-        randomize: true,
-        fit: true,
-        padding: 35,
-        nodeRepulsion: 7000,
-        idealEdgeLength: 85,
-        edgeElasticity: 100,
-        gravity: 0.25,
-        numIter: 700,
-      })
-      .run();
+    cy.layout({
+      name: "cose",
+      animate: false,
+      randomize: true,
+      fit: true,
+      padding: 35,
+      nodeRepulsion: 7000,
+      idealEdgeLength: 85,
+      edgeElasticity: 100,
+      gravity: 0.25,
+      numIter: 700,
+    }).run();
   };
 
   return (
     <>
-      <h1 className="page-title">知识图谱</h1>
+      <h1 className="page-title">{t("nav.graph")}</h1>
       <div className="toolbar panel">
         <input
-          placeholder="搜索标题、路径、标签"
+          placeholder={t("graph.searchPlaceholder")}
           value={filters.search}
           onChange={(e) => set("search", e.target.value)}
         />
         <>
-            <select
-              value={filters.area}
-              onChange={(e) => set("area", e.target.value)}
-            >
-              <option value="all">全部区域</option>
-              <option value="projects">Projects</option>
-              <option value="areas">Areas</option>
-              <option value="resources">Resources</option>
-              <option value="questions">Questions</option>
-              <option value="archives">Archives</option>
-              <option value="root">Root</option>
-            </select>
+          <select
+            value={filters.area}
+            onChange={(e) => set("area", e.target.value)}
+          >
+            <option value="all">{t("graph.allAreas")}</option>
+            <option value="projects">{t("area.projects")}</option>
+            <option value="areas">{t("area.areas")}</option>
+            <option value="resources">{t("area.resources")}</option>
+            <option value="questions">{t("area.questions")}</option>
+            <option value="archives">{t("area.archives")}</option>
+            <option value="root">{t("area.root")}</option>
+          </select>
+          <input
+            placeholder={t("graph.tagPlaceholder")}
+            style={{ width: 110 }}
+            value={filters.tag}
+            onChange={(e) => set("tag", e.target.value)}
+          />
+          <label className="toggle">
             <input
-              placeholder="标签过滤"
-              style={{ width: 110 }}
-              value={filters.tag}
-              onChange={(e) => set("tag", e.target.value)}
+              type="checkbox"
+              checked={filters.folders}
+              onChange={(e) => set("folders", e.target.checked)}
             />
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={filters.folders}
-                onChange={(e) => set("folders", e.target.checked)}
-              />
-              文件夹
-            </label>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={filters.archives}
-                onChange={(e) => set("archives", e.target.checked)}
-              />
-              归档
-            </label>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={filters.indexes}
-                onChange={(e) => set("indexes", e.target.checked)}
-              />
-              索引关系
-            </label>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={filters.isolated}
-                onChange={(e) => set("isolated", e.target.checked)}
-              />
-              孤岛
-            </label>
-            <button
-              className={`btn${filters.mode === "global" ? " primary" : ""}`}
-              onClick={() => set("mode", "global")}
-            >
-              全局
-            </button>
-            <button
-              className={`btn${filters.mode === "local" ? " primary" : ""}`}
-              onClick={() => {
-                if (!selectedId) return toast("请先选择一个节点");
-                set("mode", "local");
-              }}
-            >
-              局部
-            </button>
-            <select
-              value={filters.depth}
-              onChange={(e) => set("depth", Number(e.target.value) as 1 | 2)}
-            >
-              <option value={1}>1 跳</option>
-              <option value={2}>2 跳</option>
-            </select>
-            <button className="btn" onClick={relayout}>
-              重排
-            </button>
-            <button
-              className="btn"
-              onClick={() => cyRef.current?.fit(undefined, 35)}
-            >
-              适应
-            </button>
+            {t("graph.folders")}
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.archives}
+              onChange={(e) => set("archives", e.target.checked)}
+            />
+            {t("graph.archives")}
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.indexes}
+              onChange={(e) => set("indexes", e.target.checked)}
+            />
+            {t("graph.indexes")}
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.isolated}
+              onChange={(e) => set("isolated", e.target.checked)}
+            />
+            {t("graph.isolated")}
+          </label>
+          <button
+            className={`btn${filters.mode === "global" ? " primary" : ""}`}
+            onClick={() => set("mode", "global")}
+          >
+            {t("graph.global")}
+          </button>
+          <button
+            className={`btn${filters.mode === "local" ? " primary" : ""}`}
+            onClick={() => {
+              if (!selectedId) return toast(t("graph.selectFirst"));
+              set("mode", "local");
+            }}
+          >
+            {t("graph.local")}
+          </button>
+          <select
+            value={filters.depth}
+            onChange={(e) => set("depth", Number(e.target.value) as 1 | 2)}
+          >
+            <option value={1}>{t("graph.hop1")}</option>
+            <option value={2}>{t("graph.hop2")}</option>
+          </select>
+          <button className="btn" onClick={relayout}>
+            {t("graph.relayout")}
+          </button>
+          <button
+            className="btn"
+            onClick={() => cyRef.current?.fit(undefined, 35)}
+          >
+            {t("graph.fit")}
+          </button>
         </>
         <span className="status">{status}</span>
       </div>
@@ -432,7 +451,7 @@ export function GraphView({
           <div ref={containerRef} className="cy-container" />
           {filtered && filtered.nodes.length === 0 && (
             <div id="empty" style={{ display: "block" }}>
-              当前过滤条件下没有节点
+              {t("graph.empty")}
             </div>
           )}
         </div>
@@ -442,22 +461,22 @@ export function GraphView({
               <h2>{selectedNode.title}</h2>
               <div className="path">{selectedNode.id}</div>
               <div className="metric">
-                <span>区域</span>
-                <b>{selectedNode.area}</b>
+                <span>{t("graph.area")}</span>
+                <b>{selectedAreaLabel}</b>
                 {selectedNode.isFolder ? (
                   <>
-                    <span>包含</span>
+                    <span>{t("graph.contains")}</span>
                     <b>{selectedNode.folderDegree}</b>
                   </>
                 ) : (
                   <>
-                    <span>入链</span>
+                    <span>{t("graph.incoming")}</span>
                     <b>{selectedNode.inDegree}</b>
-                    <span>出链</span>
+                    <span>{t("graph.outgoing")}</span>
                     <b>{selectedNode.outDegree}</b>
-                    <span>语义连接</span>
+                    <span>{t("graph.semantic")}</span>
                     <b>{selectedNode.semanticDegree}</b>
-                    <span>索引连接</span>
+                    <span>{t("graph.index")}</span>
                     <b>{selectedNode.indexDegree}</b>
                   </>
                 )}
@@ -470,31 +489,29 @@ export function GraphView({
                     </span>
                   ))
                 ) : (
-                  <span className="path">无标签</span>
+                  <span className="path">{t("graph.noTags")}</span>
                 )}
               </div>
               <div className="hint">
                 {selectedNode.isFolder
-                  ? "文件夹节点：单击高亮包含关系。"
-                  : "单击高亮入链与出链；双击在 VS Code 打开。"}
+                  ? t("graph.folderHint")
+                  : t("graph.noteHint")}
                 {!selectedNode.isFolder && (
                   <button
                     className="btn"
                     style={{ marginTop: 10 }}
                     onClick={() => navigate("notes", selectedNode.id)}
                   >
-                    在阅读器中打开 →
+                    {t("graph.openReader")}
                   </button>
                 )}
               </div>
             </>
           ) : (
             <>
-              <h2>选择一个节点</h2>
-              <div className="path">单击查看关系，双击在 VS Code 打开。</div>
-              <div className="hint">
-                默认显示文件夹层级（虚线框节点），隐藏 archives、索引关系和语义孤岛。索引边使用虚线，不能代替真实知识联系。
-              </div>
+              <h2>{t("graph.selectNode")}</h2>
+              <div className="path">{t("graph.selectHint")}</div>
+              <div className="hint">{t("graph.defaultHint")}</div>
             </>
           )}
         </aside>

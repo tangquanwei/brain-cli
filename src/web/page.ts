@@ -47,6 +47,16 @@ body {
 .nav-item.active { background:var(--accent); color:var(--accent-text); font-weight:600; }
 .nav-item .icon { width:20px; text-align:center; }
 .sidebar .spacer { flex:1; }
+.language-control {
+  display:grid; grid-template-columns:1fr 1fr; gap:2px; margin:4px 8px 8px; padding:3px;
+  border:1px solid var(--line); border-radius:9px; background:var(--hover);
+}
+.language-control button {
+  min-width:0; padding:3px 5px; border:0; border-radius:6px; background:transparent;
+  color:var(--secondary); font:inherit; font-size:11px; font-weight:600; cursor:pointer;
+}
+.language-control button:hover { color:var(--text); }
+.language-control button.active { background:var(--card); color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.08); }
 .capture-btn {
   margin:4px 8px 2px; padding:8px 0; border:0; border-radius:980px; background:var(--accent);
   color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer;
@@ -203,6 +213,8 @@ label.toggle { display:flex; gap:5px; align-items:center; color:var(--secondary)
   .sidebar { padding:16px 8px; }
   .brand { font-size:15px; padding:4px 4px 14px; text-align:center; }
   .nav-item span.txt, .capture-btn span { display:none; }
+  .language-control { margin:4px 0 8px; }
+  .language-control button { padding:3px 1px; font-size:9px; }
   .notes-grid, .graph-body { grid-template-columns:1fr; }
   .side { display:none; }
   .main { padding:20px 16px 50px; }

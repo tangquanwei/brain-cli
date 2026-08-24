@@ -5,6 +5,7 @@ import { navigate } from "../App";
 import { Modal } from "../components/Modal";
 import { useToast } from "../components/Toast";
 import { TreeView } from "../components/TreeView";
+import { useI18n } from "../i18n";
 import type {
   BacklinkEdge,
   MoveResult,
@@ -23,15 +24,16 @@ function RenameModal({
   onDone: (r: MoveResult) => void;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const base = id.split("/").pop()!.replace(/\.md$/i, "");
   const [name, setName] = useState(base);
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    if (!name.trim()) return toast("名称不能为空");
+    if (!name.trim()) return toast(t("notes.nameRequired"));
     setBusy(true);
     try {
       const r = await api.rename(id, name.trim());
-      toast(`✅ 已重命名，更新 ${r.linkRewrites} 处链接`);
+      toast(t("notes.renameSuccess", { count: r.linkRewrites }));
       onDone(r);
     } catch (e) {
       toast((e as Error).message);
@@ -39,7 +41,7 @@ function RenameModal({
     }
   };
   return (
-    <Modal title="✏️ 重命名笔记" onClose={onClose}>
+    <Modal title={t("notes.renameTitle")} onClose={onClose}>
       <div className="field">
         <label>{id}</label>
         <input
@@ -49,14 +51,14 @@ function RenameModal({
         />
       </div>
       <p className="muted" style={{ fontSize: 12 }}>
-        会自动同步图片目录和所有引用链接。
+        {t("notes.renameHint")}
       </p>
       <div className="actions">
         <button className="btn" onClick={onClose}>
-          取消
+          {t("common.cancel")}
         </button>
         <button className="btn primary" disabled={busy} onClick={submit}>
-          重命名
+          {t("notes.rename")}
         </button>
       </div>
     </Modal>
@@ -73,14 +75,15 @@ function MoveModal({
   onDone: (r: MoveResult) => void;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [path, setPath] = useState(id);
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    if (!path.trim()) return toast("路径不能为空");
+    if (!path.trim()) return toast(t("notes.pathRequired"));
     setBusy(true);
     try {
       const r = await api.move(id, path.trim());
-      toast(`✅ 已移动，更新 ${r.linkRewrites} 处链接`);
+      toast(t("notes.moveSuccess", { count: r.linkRewrites }));
       onDone(r);
     } catch (e) {
       toast((e as Error).message);
@@ -88,13 +91,13 @@ function MoveModal({
     }
   };
   return (
-    <Modal title="🚚 移动笔记" onClose={onClose}>
+    <Modal title={t("notes.moveTitle")} onClose={onClose}>
       <div className="field">
-        <label>当前位置</label>
+        <label>{t("notes.currentPath")}</label>
         <input value={id} disabled />
       </div>
       <div className="field">
-        <label>新路径（相对 notes 根目录）</label>
+        <label>{t("notes.newPath")}</label>
         <input
           autoFocus
           value={path}
@@ -102,14 +105,14 @@ function MoveModal({
         />
       </div>
       <p className="muted" style={{ fontSize: 12 }}>
-        会自动重写相对链接，例如 areas/x/note.md。
+        {t("notes.moveHint")}
       </p>
       <div className="actions">
         <button className="btn" onClick={onClose}>
-          取消
+          {t("common.cancel")}
         </button>
         <button className="btn primary" disabled={busy} onClick={submit}>
-          移动
+          {t("notes.move")}
         </button>
       </div>
     </Modal>
@@ -126,6 +129,7 @@ function Reader({
   onMutated: () => void;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [note, setNote] = useState<NoteContent | null>(null);
   const [backlinks, setBacklinks] = useState<BacklinkEdge[]>([]);
   const [error, setError] = useState("");
@@ -146,13 +150,13 @@ function Reader({
   if (error)
     return (
       <div className="reader">
-        <div className="reader-empty">加载失败:{error}</div>
+        <div className="reader-empty">{t("common.loadFailed", { error })}</div>
       </div>
     );
   if (!note)
     return (
       <div className="reader">
-        <div className="reader-empty">加载中…</div>
+        <div className="reader-empty">{t("common.loading")}</div>
       </div>
     );
 
@@ -181,17 +185,17 @@ function Reader({
             onClick={() =>
               api
                 .open(id)
-                .then(() => toast("已在 VS Code 打开"))
+                .then(() => toast(t("common.openedInVSCode")))
                 .catch((e) => toast((e as Error).message))
             }
           >
             VS Code
           </button>
           <button className="btn" onClick={() => setModal("rename")}>
-            重命名
+            {t("notes.rename")}
           </button>
           <button className="btn" onClick={() => setModal("move")}>
-            移动
+            {t("notes.move")}
           </button>
         </div>
       </div>
@@ -200,7 +204,7 @@ function Reader({
         {backlinks.length > 0 && (
           <>
             <h3 style={{ marginTop: 28, fontSize: 15 }}>
-              反向链接（{backlinks.length}）
+              {t("notes.backlinks", { count: backlinks.length })}
             </h3>
             <table className="link-table">
               <tbody>
@@ -256,6 +260,7 @@ export function Notes({
   onMutated: () => void;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [tree, setTree] = useState<TreeFolderNode | null>(null);
   const [search, setSearch] = useState("");
   const [hits, setHits] = useState<NoteSummary[] | null>(null);
@@ -278,12 +283,12 @@ export function Notes({
 
   return (
     <>
-      <h1 className="page-title">笔记</h1>
+      <h1 className="page-title">{t("nav.notes")}</h1>
       <div className="notes-grid">
         <div className="tree-pane">
           <input
             className="search"
-            placeholder="搜索标题、路径、标签…"
+            placeholder={t("notes.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -301,7 +306,7 @@ export function Notes({
                 </div>
               ))
             ) : (
-              <span className="muted">没有匹配的笔记</span>
+              <span className="muted">{t("notes.noMatches")}</span>
             )
           ) : tree ? (
             <ul className="tree-list">
@@ -313,13 +318,13 @@ export function Notes({
                 onOpen={(id) =>
                   api
                     .open(id)
-                    .then(() => toast("已在 VS Code 打开"))
+                    .then(() => toast(t("common.openedInVSCode")))
                     .catch((e) => toast((e as Error).message))
                 }
               />
             </ul>
           ) : (
-            <span className="muted">加载中…</span>
+            <span className="muted">{t("common.loading")}</span>
           )}
         </div>
         {noteId ? (
@@ -327,10 +332,10 @@ export function Notes({
         ) : (
           <div className="reader">
             <div className="reader-empty">
-              ← 选择一篇笔记开始阅读
+              {t("notes.selectPrompt")}
               <br />
               <br />
-              <span style={{ fontSize: 12 }}>双击树中条目可在 VS Code 打开</span>
+              <span style={{ fontSize: 12 }}>{t("notes.openHint")}</span>
             </div>
           </div>
         )}

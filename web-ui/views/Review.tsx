@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { api } from "../api";
 import { navigate } from "../App";
+import { useI18n, type TranslationKey } from "../i18n";
 import type { ReviewNote } from "../types";
 
 const MODES = [
-  { key: "week", label: "📅 本周" },
-  { key: "month", label: "🗓 本月" },
-  { key: "random", label: "🎲 随机 5 篇" },
-  { key: "tags", label: "🏷️ 按标签" },
+  { key: "week", label: "review.week" },
+  { key: "month", label: "review.month" },
+  { key: "random", label: "review.random" },
+  { key: "tags", label: "review.tags" },
 ] as const;
 
 export function Review() {
+  const { t } = useI18n();
   const [active, setActive] = useState<string | null>(null);
   const [notes, setNotes] = useState<ReviewNote[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ export function Review() {
   const run = async (mode: string) => {
     let extra = "";
     if (mode === "tags") {
-      const tags = prompt("输入标签（逗号分隔）");
+      const tags = prompt(t("review.tagsPrompt"));
       if (!tags) return;
       extra = `&tags=${encodeURIComponent(tags)}`;
     }
@@ -34,7 +36,7 @@ export function Review() {
 
   return (
     <>
-      <h1 className="page-title">回顾</h1>
+      <h1 className="page-title">{t("nav.review")}</h1>
       <div className="panel">
         <div className="btn-row">
           {MODES.map((m) => (
@@ -43,17 +45,17 @@ export function Review() {
               className={`btn${active === m.key ? " primary" : ""}`}
               onClick={() => run(m.key)}
             >
-              {m.label}
+              {t(m.label as TranslationKey)}
             </button>
           ))}
         </div>
       </div>
-      {loading && <p className="muted">加载中…</p>}
+      {loading && <p className="muted">{t("common.loading")}</p>}
       {!loading && notes && (
         <>
-          <p className="muted">共 {notes.length} 篇</p>
+          <p className="muted">{t("review.total", { count: notes.length })}</p>
           {notes.length === 0 ? (
-            <p className="muted">没有符合条件的笔记 📝</p>
+            <p className="muted">{t("review.empty")}</p>
           ) : (
             <div className="note-cards">
               {notes.map((n) => (

@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { navigate } from "../App";
+import { useI18n, type TranslationKey } from "../i18n";
 import type { DashboardData } from "../types";
 
-const AREA_NAMES: Record<string, string> = {
-  projects: "📁 Projects",
-  areas: "🎯 Areas",
-  resources: "📚 Resources",
-  archives: "📦 Archives",
+const AREA_NAMES: Record<string, TranslationKey> = {
+  projects: "area.projects",
+  areas: "area.areas",
+  resources: "area.resources",
+  archives: "area.archives",
+  questions: "area.questions",
+  root: "area.root",
 };
 
 function Pill({ kind, children }: { kind: string; children: React.ReactNode }) {
@@ -15,6 +18,7 @@ function Pill({ kind, children }: { kind: string; children: React.ReactNode }) {
 }
 
 export function Dashboard({ dataVersion }: { dataVersion: number }) {
+  const { t } = useI18n();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
 
@@ -25,29 +29,29 @@ export function Dashboard({ dataVersion }: { dataVersion: number }) {
   if (error)
     return (
       <>
-        <h1 className="page-title">仪表盘</h1>
-        <p className="muted">加载失败:{error}</p>
+        <h1 className="page-title">{t("nav.dashboard")}</h1>
+        <p className="muted">{t("common.loadFailed", { error })}</p>
       </>
     );
   if (!data)
     return (
       <>
-        <h1 className="page-title">仪表盘</h1>
-        <p className="muted">加载中…</p>
+        <h1 className="page-title">{t("nav.dashboard")}</h1>
+        <p className="muted">{t("common.loading")}</p>
       </>
     );
 
   const cards: [number, string][] = [
-    [data.total, "笔记总数"],
-    ...data.areas.map((a): [number, string] => [
-      a.count,
-      AREA_NAMES[a.area] ?? a.area,
-    ]),
+    [data.total, t("dashboard.totalNotes")],
+    ...data.areas.map((a): [number, string] => {
+      const areaKey = AREA_NAMES[a.area];
+      return [a.count, areaKey ? t(areaKey) : a.area];
+    }),
   ];
 
   return (
     <>
-      <h1 className="page-title">仪表盘</h1>
+      <h1 className="page-title">{t("nav.dashboard")}</h1>
       <div className="cards">
         {cards.map(([n, label]) => (
           <div className="card" key={label}>
@@ -58,45 +62,62 @@ export function Dashboard({ dataVersion }: { dataVersion: number }) {
       </div>
 
       <div className="panel">
-        <h3>链接健康</h3>
+        <h3>{t("dashboard.linkHealth")}</h3>
         <div className="btn-row">
           {data.links.broken > 0 ? (
-            <Pill kind="bad">{data.links.broken} 断链</Pill>
+            <Pill kind="bad">
+              {t("dashboard.broken", { count: data.links.broken })}
+            </Pill>
           ) : (
-            <Pill kind="ok">无断链</Pill>
+            <Pill kind="ok">{t("dashboard.noBroken")}</Pill>
           )}
           <Pill kind={data.links.missingHeading ? "warn" : "ok"}>
-            {data.links.missingHeading} 缺失标题/块
+            {t("dashboard.missingHeading", {
+              count: data.links.missingHeading,
+            })}
           </Pill>
           <Pill kind={data.links.missingAssets ? "warn" : "ok"}>
-            {data.links.missingAssets} 缺失附件
+            {t("dashboard.missingAssets", {
+              count: data.links.missingAssets,
+            })}
           </Pill>
           <Pill kind={data.links.nonStandard ? "warn" : "ok"}>
-            {data.links.nonStandard} 歧义 WikiLink
+            {t("dashboard.ambiguousWiki", {
+              count: data.links.nonStandard,
+            })}
           </Pill>
-          <Pill kind="">{data.links.orphans} 孤岛</Pill>
           <Pill kind="">
-            活跃孤岛 {data.links.activeOrphans}/{data.links.activeNotes}
+            {t("dashboard.orphans", { count: data.links.orphans })}
+          </Pill>
+          <Pill kind="">
+            {t("dashboard.activeOrphans", {
+              orphans: data.links.activeOrphans,
+              notes: data.links.activeNotes,
+            })}
           </Pill>
         </div>
       </div>
 
       <div className="panel">
-        <h3>Git 备份</h3>
+        <h3>{t("dashboard.gitBackup")}</h3>
         {!data.git.notesRepo ? (
-          <Pill kind="bad">notes 不是 Git 仓库</Pill>
+          <Pill kind="bad">{t("dashboard.notRepo")}</Pill>
         ) : data.git.pendingFiles ? (
           <>
-            <Pill kind="warn">{data.git.pendingFiles} 个文件待备份</Pill>{" "}
-            <span className="muted">运行 brain backup 提交</span>
+            <Pill kind="warn">
+              {t("dashboard.pendingFiles", {
+                count: data.git.pendingFiles,
+              })}
+            </Pill>{" "}
+            <span className="muted">{t("dashboard.runBackup")}</span>
           </>
         ) : (
-          <Pill kind="ok">notes 工作区干净</Pill>
+          <Pill kind="ok">{t("dashboard.clean")}</Pill>
         )}
       </div>
 
       <div className="panel">
-        <h3>最近笔记</h3>
+        <h3>{t("dashboard.recent")}</h3>
         <div className="note-cards">
           {data.recent.map((n) => (
             <div
