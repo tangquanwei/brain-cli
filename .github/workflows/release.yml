@@ -23,6 +23,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: npm ci
+      - run: npm audit --omit=dev
 
       # 不跑 npm run verify:它的 links --check 依赖本地 notes 目录,CI 里没有
       - run: npm test
