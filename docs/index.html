@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>2ndBrain CLI — Safe maintenance for Markdown vaults</title>
+    <meta
+      name="description"
+      content="Keep your Markdown or Obsidian vault healthy with safe refactors, link checks, Git backups, and a local knowledge graph."
+    />
+    <meta name="theme-color" content="#07152d" />
+    <link rel="canonical" href="https://tangquanwei.github.io/brain-cli/" />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://tangquanwei.github.io/brain-cli/"
+    />
+    <link
+      rel="alternate"
+      hreflang="zh-CN"
+      href="https://tangquanwei.github.io/brain-cli/zh/"
+    />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://tangquanwei.github.io/brain-cli/"
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="2ndBrain CLI — Your notes stay yours. Their links stay healthy."
+    />
+    <meta
+      property="og:description"
+      content="A local-first maintenance layer for growing Markdown vaults."
+    />
+    <meta
+      property="og:url"
+      content="https://tangquanwei.github.io/brain-cli/"
+    />
+    <meta
+      property="og:image"
+      content="https://tangquanwei.github.io/brain-cli/social-preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      document.documentElement.classList.replace("no-js", "js");
+    </script>
+    <link rel="stylesheet" href="./site.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "2ndBrain CLI",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "description": "Local-first Markdown vault toolkit with safe refactoring, link checks, Git backups, and a knowledge graph.",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "downloadUrl": "https://www.npmjs.com/package/@qwtang/brain-cli",
+        "codeRepository": "https://github.com/tangquanwei/brain-cli"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="shell nav-wrap">
+        <a class="brand" href="./" aria-label="2ndBrain CLI home">
+          <span class="brand-mark" aria-hidden="true">2B</span>
+          <span>2ndBrain <span class="brand-accent">CLI</span></span>
+        </a>
+        <button
+          class="menu-button"
+          type="button"
+          aria-label="Open navigation"
+          aria-expanded="false"
+          data-menu-button
+        >
+          ☰
+        </button>
+        <nav class="site-nav" aria-label="Main navigation" data-site-nav>
+          <a href="#features">Why 2ndBrain</a>
+          <a href="#workflow">How it works</a>
+          <a href="#commands">Commands</a>
+          <a href="#safety">Safety</a>
+          <span class="language-switch" aria-label="Language">
+            <span aria-current="page">EN</span>
+            <a href="./zh/" lang="zh-CN">中文</a>
+          </span>
+          <a class="nav-cta" href="https://github.com/tangquanwei/brain-cli"
+            >GitHub ↗</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="shell hero-grid">
+          <div>
+            <p class="eyebrow">Local-first Markdown infrastructure</p>
+            <h1>Your notes stay yours. Their links stay <em>healthy.</em></h1>
+            <p class="hero-lead">
+              2ndBrain CLI is the maintenance layer for a growing Markdown
+              vault—safe refactors, precise link checks, scoped Git backups, and
+              a visual knowledge graph. No account. No migration. No lock-in.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#start"
+                >Get started in 60 seconds <span aria-hidden="true">→</span></a
+              >
+              <a
+                class="button button-secondary"
+                href="https://github.com/tangquanwei/brain-cli#reproducible-demo-vault"
+                >Try the demo vault</a
+              >
+            </div>
+            <div class="hero-note" aria-label="Compatibility">
+              <span>Node.js 20+</span><span>macOS · Linux · Windows</span
+              ><span>Apache-2.0</span>
+            </div>
+          </div>
+
+          <div
+            class="product-stage"
+            aria-label="A healthy vault scan in the terminal"
+          >
+            <div class="stage-orbit" aria-hidden="true"></div>
+            <div class="terminal-card">
+              <div class="terminal-top">
+                <i></i><i></i><i></i
+                ><span class="terminal-title">my-brain / health check</span>
+              </div>
+              <div class="terminal-body">
+                <div>
+                  <span class="prompt">$</span>
+                  <span class="terminal-command"
+                    >brain links --stats --orphans</span
+                  >
+                </div>
+                <br />
+                <div class="terminal-row">
+                  <span class="terminal-muted">Notes</span><span>247</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">Internal links</span
+                  ><span>1,382</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">Broken links</span
+                  ><span class="terminal-good">0</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">Missing embeds</span
+                  ><span class="terminal-good">0</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">Ambiguous WikiLinks</span
+                  ><span class="terminal-good">0</span>
+                </div>
+                <br />
+                <div class="terminal-good">✓ Vault health check passed</div>
+              </div>
+            </div>
+            <div class="health-card">
+              <span class="health-score">A+</span
+              ><span
+                ><strong>Link health</strong
+                ><small>Everything resolves locally</small></span
+              >
+            </div>
+            <div class="floating-label">plain .md files</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="trust-bar">
+        <div class="shell trust-grid">
+          <div class="trust-item">
+            <span aria-hidden="true">◇</span> Plain Markdown
+          </div>
+          <div class="trust-item">
+            <span aria-hidden="true">⌂</span> Local by default
+          </div>
+          <div class="trust-item">
+            <span aria-hidden="true">⑂</span> Git-aware
+          </div>
+          <div class="trust-item">
+            <span aria-hidden="true">◎</span> Obsidian-compatible
+          </div>
+        </div>
+      </div>
+
+      <section class="section" id="features">
+        <div class="shell">
+          <div class="section-heading" data-reveal>
+            <div>
+              <p class="eyebrow">Built for the messy middle</p>
+              <h2>Write freely.<br />Maintain confidently.</h2>
+            </div>
+            <p>
+              Your editor helps you create notes. 2ndBrain CLI handles the
+              maintenance work that becomes fragile as hundreds of files, links,
+              and assets accumulate.
+            </p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">01</span
+              ><span class="feature-tag">SAFE REFACTOR</span>
+              <h3>Rename without breaking context</h3>
+              <p>
+                Move or rename a note while updating relative Markdown links,
+                resolved WikiLinks, and matching image folders. Preview every
+                change with <code>--dry-run</code>.
+              </p>
+            </article>
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">02</span
+              ><span class="feature-tag">READ ONLY</span>
+              <h3>Find decay before it spreads</h3>
+              <p>
+                Catch broken links, missing headings and blocks, missing embeds,
+                ambiguous WikiLinks, backlinks, and orphans.
+              </p>
+            </article>
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">03</span
+              ><span class="feature-tag">SCOPED GIT</span>
+              <h3>Keep recoverable history</h3>
+              <p>
+                Commit—and optionally push—only the configured notes repository.
+                Your surrounding workspace stays outside the boundary.
+              </p>
+            </article>
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">04</span
+              ><span class="feature-tag">LOCAL WEBUI</span>
+              <h3>See the system, not just the files</h3>
+              <p>
+                Browse notes, link health, reviews, backlinks, and a knowledge
+                graph from a dashboard that listens only on your machine.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="workflow">
+        <div class="shell">
+          <div class="section-heading" data-reveal>
+            <div>
+              <p class="eyebrow">Fits your existing vault</p>
+              <h2>From folder to clarity in three steps.</h2>
+            </div>
+            <p>
+              No import pipeline and no proprietary database. Point 2ndBrain CLI
+              at ordinary Markdown files and start with a read-only health
+              check.
+            </p>
+          </div>
+          <div class="flow-grid">
+            <article class="flow-step" data-reveal>
+              <div class="flow-number">STEP 01</div>
+              <h3>Inspect</h3>
+              <p>
+                Run a read-only diagnostic against any Markdown or Obsidian
+                vault—without initializing or moving it.
+              </p>
+              <code>brain doctor /path/to/notes</code>
+            </article>
+            <article class="flow-step" data-reveal>
+              <div class="flow-number">STEP 02</div>
+              <h3>Understand</h3>
+              <p>
+                Open the local dashboard to explore notes, health signals,
+                reviews, and relationships in context.
+              </p>
+              <code>brain --vault /path/to/notes web --open</code>
+            </article>
+            <article class="flow-step" data-reveal>
+              <div class="flow-number">STEP 03</div>
+              <h3>Maintain</h3>
+              <p>
+                Refactor with a preview, capture new ideas, and preserve the
+                result in scoped Git history.
+              </p>
+              <code>brain rename old new --dry-run</code>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell showcase">
+          <div class="showcase-copy" data-reveal>
+            <p class="eyebrow">One local control room</p>
+            <h2>Your vault, made visible.</h2>
+            <p>
+              The WebUI turns the same local Markdown into an operational view.
+              Read and edit notes, trace links, review what matters, and explore
+              the graph without sending content to a hosted service.
+            </p>
+            <ul class="check-list">
+              <li>Dashboard and recent notes</li>
+              <li>Link-health diagnostics</li>
+              <li>Interactive knowledge graph</li>
+              <li>Local note capture and editing</li>
+            </ul>
+          </div>
+          <figure class="showcase-frame" data-reveal>
+            <img
+              src="./screenshots/dashboard.png"
+              width="1874"
+              height="972"
+              loading="lazy"
+              alt="2ndBrain CLI WebUI dashboard showing vault statistics, link health, and recent notes"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="safety">
+        <div class="shell safety-grid">
+          <div class="safety-copy" data-reveal>
+            <p class="eyebrow">Safety is a product feature</p>
+            <h2>Clear boundaries. Boring surprises.</h2>
+            <p>
+              A tool that changes a knowledge base should make its limits
+              obvious. Read-only checks, dry-run refactors, local networking,
+              and vault-scoped Git behavior are designed into the workflow.
+            </p>
+            <a
+              class="button button-secondary"
+              href="https://github.com/tangquanwei/brain-cli/blob/main/SECURITY.md"
+              >Read the security policy →</a
+            >
+          </div>
+          <div class="boundary-list" data-reveal>
+            <div class="boundary-item">
+              <span class="boundary-icon">⌂</span
+              ><span
+                ><strong>Local network only</strong
+                ><span
+                  >The WebUI binds to 127.0.0.1 by default, not the public
+                  network.</span
+                ></span
+              >
+            </div>
+            <div class="boundary-item">
+              <span class="boundary-icon">◉</span
+              ><span
+                ><strong>Read-only by default</strong
+                ><span
+                  >Doctor, link scans, backlinks, status, reviews, and dry runs
+                  do not change files.</span
+                ></span
+              >
+            </div>
+            <div class="boundary-item">
+              <span class="boundary-icon">⑂</span
+              ><span
+                ><strong>Repository-scoped Git</strong
+                ><span
+                  >Backups and the watcher operate only on the configured notes
+                  repository.</span
+                ></span
+              >
+            </div>
+            <div class="boundary-item">
+              <span class="boundary-icon">↺</span
+              ><span
+                ><strong>Preview before refactor</strong
+                ><span
+                  >Use <code>--dry-run</code> and Git history before a large
+                  rename or move.</span
+                ></span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="commands">
+        <div class="shell">
+          <div class="section-heading" data-reveal>
+            <div>
+              <p class="eyebrow">Small commands, clear intent</p>
+              <h2>A focused toolkit for daily maintenance.</h2>
+            </div>
+            <p>
+              Use one command at a time, or keep the watcher running for
+              lightweight background maintenance.
+            </p>
+          </div>
+          <div class="commands-grid" data-reveal>
+            <article class="command-card">
+              <code>brain doctor</code
+              ><strong>Inspect an existing vault</strong>
+              <p>Check structure and configuration without writing anything.</p>
+            </article>
+            <article class="command-card">
+              <code>brain links</code><strong>Audit link health</strong>
+              <p>
+                Find broken targets, orphans, missing embeds, and ambiguous
+                WikiLinks.
+              </p>
+            </article>
+            <article class="command-card">
+              <code>brain backlinks</code
+              ><strong>Trace incoming context</strong>
+              <p>See which notes point to the one you are working on.</p>
+            </article>
+            <article class="command-card">
+              <code>brain rename / move</code><strong>Refactor safely</strong>
+              <p>
+                Update a note and the links that depend on it, with dry-run
+                previews.
+              </p>
+            </article>
+            <article class="command-card">
+              <code>brain backup</code><strong>Preserve history</strong>
+              <p>Commit and optionally push the configured notes repository.</p>
+            </article>
+            <article class="command-card">
+              <code>brain web</code><strong>Open the visual layer</strong>
+              <p>
+                Launch the local dashboard, editor, checks, reviews, and graph.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section" id="start">
+        <div class="shell">
+          <div class="cta-panel" data-reveal>
+            <h2>Give your notes a maintenance layer.</h2>
+            <p>
+              Install globally, enter any workspace, and start with a new brain
+              or inspect an existing Markdown vault.
+            </p>
+            <div class="install-command">
+              <code>npm install -g @qwtang/brain-cli</code
+              ><button
+                class="copy-button"
+                type="button"
+                data-copy="npm install -g @qwtang/brain-cli"
+                data-copied="Copied!"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <p class="footer-copy">
+          © <span data-year>2026</span> 2ndBrain CLI · Local-first and open
+          source under Apache-2.0.
+        </p>
+        <nav class="footer-links" aria-label="Footer">
+          <a href="https://github.com/tangquanwei/brain-cli">GitHub</a
+          ><a
+            href="https://github.com/tangquanwei/brain-cli/blob/main/docs/guide/01-%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B.md"
+            >Docs</a
+          ><a href="https://www.npmjs.com/package/@qwtang/brain-cli">npm</a
+          ><a href="https://github.com/tangquanwei/brain-cli/issues">Issues</a>
+        </nav>
+      </div>
+    </footer>
+    <script src="./site.js" defer></script>
+  </body>
+</html>

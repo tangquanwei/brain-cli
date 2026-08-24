@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="zh-CN" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>2ndBrain CLI — Markdown 知识库的安全维护层</title>
+    <meta
+      name="description"
+      content="用安全重构、链接体检、Git 备份和本地知识图谱，让你的 Markdown 或 Obsidian 知识库保持健康。"
+    />
+    <meta name="theme-color" content="#07152d" />
+    <link rel="canonical" href="https://tangquanwei.github.io/brain-cli/zh/" />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://tangquanwei.github.io/brain-cli/"
+    />
+    <link
+      rel="alternate"
+      hreflang="zh-CN"
+      href="https://tangquanwei.github.io/brain-cli/zh/"
+    />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://tangquanwei.github.io/brain-cli/"
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="2ndBrain CLI — 笔记属于你，链接始终健康"
+    />
+    <meta
+      property="og:description"
+      content="一个本地优先的 Markdown 知识库维护工具。"
+    />
+    <meta
+      property="og:url"
+      content="https://tangquanwei.github.io/brain-cli/zh/"
+    />
+    <meta
+      property="og:image"
+      content="https://tangquanwei.github.io/brain-cli/social-preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      document.documentElement.classList.replace("no-js", "js");
+    </script>
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳转到正文</a>
+    <header class="site-header">
+      <div class="shell nav-wrap">
+        <a class="brand" href="./" aria-label="2ndBrain CLI 中文首页"
+          ><span class="brand-mark" aria-hidden="true">2B</span
+          ><span>2ndBrain <span class="brand-accent">CLI</span></span></a
+        >
+        <button
+          class="menu-button"
+          type="button"
+          aria-label="打开导航"
+          aria-expanded="false"
+          data-menu-button
+        >
+          ☰
+        </button>
+        <nav class="site-nav" aria-label="主导航" data-site-nav>
+          <a href="#features">为什么使用</a><a href="#workflow">如何工作</a
+          ><a href="#commands">命令</a><a href="#safety">安全边界</a>
+          <span class="language-switch" aria-label="语言"
+            ><a href="../" lang="en">EN</a
+            ><span aria-current="page">中文</span></span
+          >
+          <a class="nav-cta" href="https://github.com/tangquanwei/brain-cli"
+            >GitHub ↗</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="shell hero-grid">
+          <div>
+            <p class="eyebrow">本地优先的 Markdown 基础设施</p>
+            <h1>笔记属于你，链接始终 <em>健康。</em></h1>
+            <p class="hero-lead">
+              2ndBrain CLI 是不断生长的 Markdown
+              知识库的维护层：安全重构、精确的链接体检、限定范围的 Git
+              备份，以及可视化知识图谱。无需账号，无需迁移，没有平台锁定。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#start"
+                >60 秒开始使用 <span aria-hidden="true">→</span></a
+              ><a
+                class="button button-secondary"
+                href="https://github.com/tangquanwei/brain-cli/blob/main/examples/demo-vault/README.md"
+                >体验示例 Vault</a
+              >
+            </div>
+            <div class="hero-note" aria-label="兼容性">
+              <span>Node.js 20+</span><span>macOS · Linux · Windows</span
+              ><span>Apache-2.0</span>
+            </div>
+          </div>
+          <div class="product-stage" aria-label="终端中的健康知识库扫描结果">
+            <div class="stage-orbit" aria-hidden="true"></div>
+            <div class="terminal-card">
+              <div class="terminal-top">
+                <i></i><i></i><i></i
+                ><span class="terminal-title">my-brain / 知识库体检</span>
+              </div>
+              <div class="terminal-body">
+                <div>
+                  <span class="prompt">$</span>
+                  <span class="terminal-command"
+                    >brain links --stats --orphans</span
+                  >
+                </div>
+                <br />
+                <div class="terminal-row">
+                  <span class="terminal-muted">笔记数</span><span>247</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">内部链接</span><span>1,382</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">断链</span
+                  ><span class="terminal-good">0</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">缺失附件</span
+                  ><span class="terminal-good">0</span>
+                </div>
+                <div class="terminal-row">
+                  <span class="terminal-muted">歧义 WikiLink</span
+                  ><span class="terminal-good">0</span>
+                </div>
+                <br />
+                <div class="terminal-good">✓ 知识库体检通过</div>
+              </div>
+            </div>
+            <div class="health-card">
+              <span class="health-score">A+</span
+              ><span
+                ><strong>链接健康</strong
+                ><small>所有内容均在本地正确解析</small></span
+              >
+            </div>
+            <div class="floating-label">普通 .md 文件</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="trust-bar">
+        <div class="shell trust-grid">
+          <div class="trust-item">
+            <span aria-hidden="true">◇</span> 纯 Markdown
+          </div>
+          <div class="trust-item">
+            <span aria-hidden="true">⌂</span> 默认只在本地
+          </div>
+          <div class="trust-item">
+            <span aria-hidden="true">⑂</span> Git 友好
+          </div>
+          <div class="trust-item">
+            <span aria-hidden="true">◎</span> 兼容 Obsidian
+          </div>
+        </div>
+      </div>
+
+      <section class="section" id="features">
+        <div class="shell">
+          <div class="section-heading" data-reveal>
+            <div>
+              <p class="eyebrow">为真实而复杂的知识库而生</p>
+              <h2>自由记录，<br />放心维护。</h2>
+            </div>
+            <p>
+              编辑器帮助你创造内容。随着文件、链接和附件不断增加，2ndBrain CLI
+              负责那些容易出错、又不断重复的维护工作。
+            </p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">01</span
+              ><span class="feature-tag">安全重构</span>
+              <h3>重命名，不破坏上下文</h3>
+              <p>
+                移动或重命名笔记时，同步更新相对 Markdown 链接、已解析 WikiLink
+                和对应图片目录。先用 <code>--dry-run</code> 预览每一项变化。
+              </p>
+            </article>
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">02</span
+              ><span class="feature-tag">只读检查</span>
+              <h3>在问题扩散前发现它</h3>
+              <p>
+                检查断链、缺失标题和块引用、丢失附件、歧义
+                WikiLink、反向链接和孤岛笔记。
+              </p>
+            </article>
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">03</span
+              ><span class="feature-tag">限定 GIT 范围</span>
+              <h3>保留可恢复的历史</h3>
+              <p>
+                只提交配置的笔记仓库，并可选择推送远端；周围的工作区不会被纳入操作范围。
+              </p>
+            </article>
+            <article class="feature-card" data-reveal>
+              <span class="feature-index">04</span
+              ><span class="feature-tag">本地 WEBUI</span>
+              <h3>看到系统，而不只是一堆文件</h3>
+              <p>
+                在只监听本机的控制台中浏览笔记、链接健康、回顾、反向链接和知识图谱。
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="workflow">
+        <div class="shell">
+          <div class="section-heading" data-reveal>
+            <div>
+              <p class="eyebrow">直接连接现有知识库</p>
+              <h2>三步，从文件夹走向清晰。</h2>
+            </div>
+            <p>
+              没有导入流程，也没有专有数据库。将 2ndBrain CLI 指向普通 Markdown
+              文件，从一次只读体检开始。
+            </p>
+          </div>
+          <div class="flow-grid">
+            <article class="flow-step" data-reveal>
+              <div class="flow-number">第 01 步</div>
+              <h3>体检</h3>
+              <p>
+                无需初始化或移动文件，直接对任意 Markdown 或 Obsidian
+                知识库执行只读诊断。
+              </p>
+              <code>brain doctor /path/to/notes</code>
+            </article>
+            <article class="flow-step" data-reveal>
+              <div class="flow-number">第 02 步</div>
+              <h3>理解</h3>
+              <p>
+                打开本地仪表盘，在上下文中探索笔记、健康信号、回顾和内容关系。
+              </p>
+              <code>brain --vault /path/to/notes web --open</code>
+            </article>
+            <article class="flow-step" data-reveal>
+              <div class="flow-number">第 03 步</div>
+              <h3>维护</h3>
+              <p>
+                先预览再重构，随手捕获新想法，并把结果保存在限定范围的 Git
+                历史中。
+              </p>
+              <code>brain rename old new --dry-run</code>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell showcase">
+          <div class="showcase-copy" data-reveal>
+            <p class="eyebrow">一个本地控制台</p>
+            <h2>让知识库真正可见。</h2>
+            <p>
+              WebUI 将同一批本地 Markdown
+              转化为可操作的视图。阅读和编辑笔记、追踪链接、完成回顾、探索图谱，全程无需把内容发送到托管服务。
+            </p>
+            <ul class="check-list">
+              <li>仪表盘与最近笔记</li>
+              <li>链接健康诊断</li>
+              <li>交互式知识图谱</li>
+              <li>本地笔记捕获与编辑</li>
+            </ul>
+          </div>
+          <figure class="showcase-frame" data-reveal>
+            <img
+              src="../screenshots/dashboard.png"
+              width="1874"
+              height="972"
+              loading="lazy"
+              alt="2ndBrain CLI WebUI 仪表盘：知识库统计、链接健康和最近笔记"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="safety">
+        <div class="shell safety-grid">
+          <div class="safety-copy" data-reveal>
+            <p class="eyebrow">安全本身就是产品能力</p>
+            <h2>边界清晰，意外无聊。</h2>
+            <p>
+              一个会修改知识库的工具，应该明确告诉你它的边界。只读检查、dry-run
+              重构、本地网络和限定知识库范围的 Git 行为都被设计进了工作流。
+            </p>
+            <a
+              class="button button-secondary"
+              href="https://github.com/tangquanwei/brain-cli/blob/main/SECURITY.md"
+              >阅读安全策略 →</a
+            >
+          </div>
+          <div class="boundary-list" data-reveal>
+            <div class="boundary-item">
+              <span class="boundary-icon">⌂</span
+              ><span
+                ><strong>仅限本地网络</strong
+                ><span>WebUI 默认只监听 127.0.0.1，不暴露到公网。</span></span
+              >
+            </div>
+            <div class="boundary-item">
+              <span class="boundary-icon">◉</span
+              ><span
+                ><strong>检查默认只读</strong
+                ><span
+                  >Doctor、链接扫描、反向链接、状态、回顾和 dry run
+                  都不会修改文件。</span
+                ></span
+              >
+            </div>
+            <div class="boundary-item">
+              <span class="boundary-icon">⑂</span
+              ><span
+                ><strong>Git 范围明确</strong
+                ><span>备份和 Watcher 只操作配置的笔记仓库。</span></span
+              >
+            </div>
+            <div class="boundary-item">
+              <span class="boundary-icon">↺</span
+              ><span
+                ><strong>重构前先预览</strong
+                ><span
+                  >大规模重命名或移动前，先使用 <code>--dry-run</code> 并保留
+                  Git 历史。</span
+                ></span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="commands">
+        <div class="shell">
+          <div class="section-heading" data-reveal>
+            <div>
+              <p class="eyebrow">小命令，明确意图</p>
+              <h2>专注于日常维护的工具箱。</h2>
+            </div>
+            <p>一次使用一个命令，或者让 Watcher 在后台进行轻量维护。</p>
+          </div>
+          <div class="commands-grid" data-reveal>
+            <article class="command-card">
+              <code>brain doctor</code><strong>检查现有知识库</strong>
+              <p>不写入文件，检查目录结构和配置。</p>
+            </article>
+            <article class="command-card">
+              <code>brain links</code><strong>审计链接健康</strong>
+              <p>发现断链、孤岛、丢失附件和歧义 WikiLink。</p>
+            </article>
+            <article class="command-card">
+              <code>brain backlinks</code><strong>追踪引用上下文</strong>
+              <p>查看哪些笔记链接到了当前内容。</p>
+            </article>
+            <article class="command-card">
+              <code>brain rename / move</code><strong>安全重构</strong>
+              <p>更新笔记以及依赖它的链接，并支持 dry-run 预览。</p>
+            </article>
+            <article class="command-card">
+              <code>brain backup</code><strong>保留历史</strong>
+              <p>提交配置的笔记仓库，并可选择推送。</p>
+            </article>
+            <article class="command-card">
+              <code>brain web</code><strong>打开可视化层</strong>
+              <p>启动本地仪表盘、编辑器、体检、回顾和图谱。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section" id="start">
+        <div class="shell">
+          <div class="cta-panel" data-reveal>
+            <h2>为你的笔记加上维护层。</h2>
+            <p>
+              全局安装后进入任意工作区；创建一个新的第二大脑，或者直接体检现有
+              Markdown 知识库。
+            </p>
+            <div class="install-command">
+              <code>npm install -g @qwtang/brain-cli</code
+              ><button
+                class="copy-button"
+                type="button"
+                data-copy="npm install -g @qwtang/brain-cli"
+                data-copied="已复制！"
+              >
+                复制
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <p class="footer-copy">
+          © <span data-year>2026</span> 2ndBrain CLI · 本地优先，以 Apache-2.0
+          协议开源。
+        </p>
+        <nav class="footer-links" aria-label="页脚导航">
+          <a href="https://github.com/tangquanwei/brain-cli">GitHub</a
+          ><a
+            href="https://github.com/tangquanwei/brain-cli/blob/main/docs/README_ZH.md"
+            >文档</a
+          ><a href="https://www.npmjs.com/package/@qwtang/brain-cli">npm</a
+          ><a href="https://github.com/tangquanwei/brain-cli/issues"
+            >问题反馈</a
+          >
+        </nav>
+      </div>
+    </footer>
+    <script src="../site.js" defer></script>
+  </body>
+</html>
