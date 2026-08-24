@@ -1,0 +1,52 @@
+name: Release
+
+# 打 tag 触发：git tag v0.2.0 && git push --tags
+# tag 版本号必须与 package.json 的 version 一致，否则构建失败。
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # 创建 GitHub Release 需要
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # 不跑 npm run verify:它的 links --check 依赖本地 notes 目录,CI 里没有
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+
+      - name: 校验 tag 与 package.json 版本一致
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag v$tag 与 package.json version $pkg 不一致"
+            exit 1
+          fi
+
+      - run: npm pack
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: "*.tgz"
+
+      - name: 发布到 npmjs.com
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
