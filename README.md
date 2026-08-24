@@ -2,6 +2,7 @@
 
 > 本地优先的「第二大脑」：Markdown + PARA + Git，一条命令管好你的知识库。
 
+![npm](https://img.shields.io/npm/v/@qwtang/brain-cli?logo=npm&logoColor=white&label=npm)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -34,7 +35,17 @@
 
 ## 🚀 快速开始
 
+### 方式一：npm 安装（推荐）
+
 ```bash
+npm install -g @qwtang/brain-cli
+```
+
+### 方式二：源码安装
+
+```bash
+git clone https://github.com/tangquanwei/brain-cli.git
+cd brain-cli
 npm install
 npm run build
 npm link          # 可选：把 `brain` 放到 PATH
