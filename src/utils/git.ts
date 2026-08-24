@@ -12,11 +12,18 @@ function notesGit(): SimpleGit {
 }
 
 function canonicalPath(path: string): string {
+  let canonical: string;
   try {
-    return realpathSync(path);
+    canonical = realpathSync(path);
   } catch {
-    return resolve(path);
+    canonical = resolve(path);
   }
+
+  // Git for Windows and Node can report the same path with different casing
+  // (for example, the drive letter or the runner's temporary directory).
+  // Windows path identity is case-insensitive, so compare canonical paths the
+  // same way without weakening the check on case-sensitive platforms.
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
 }
 
 async function checkRepo(git: SimpleGit, expectedRoot?: string): Promise<boolean> {
