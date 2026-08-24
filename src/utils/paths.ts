@@ -24,10 +24,16 @@ function isBrainCliPkg(dir: string): boolean {
 function findRepoRoot(): string {
   // Start from this file's directory and walk up.
   const here = dirname(fileURLToPath(import.meta.url));
-  // 阶段一：主仓库模式 —— 某级目录下存在 brain-cli/package.json
+  // 阶段一：主仓库模式 —— 某级目录下存在 brain-cli/package.json。
+  // 同时要求该级是 Git 仓库根（含 .git），否则 GitHub Actions 的
+  // /home/runner/work/brain-cli/brain-cli 双层同名目录会被误判为主仓库模式。
   let dir = here;
   for (let i = 0; i < 10; i++) {
-    if (isBrainCliPkg(resolve(dir, "brain-cli"))) return dir;
+    if (
+      isBrainCliPkg(resolve(dir, "brain-cli")) &&
+      existsSync(resolve(dir, ".git"))
+    )
+      return dir;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
