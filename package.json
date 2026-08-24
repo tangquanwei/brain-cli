@@ -1,7 +1,7 @@
 {
   "name": "@qwtang/brain-cli",
   "version": "0.1.1",
-  "description": "🧠 2ndBrain CLI - 本地优先的第二大脑：Markdown + PARA + Git",
+  "description": "Local-first Markdown vault toolkit with safe refactoring, link checks, Git backups, and a knowledge graph",
   "type": "module",
   "license": "Apache-2.0",
   "author": "tangquanwei",
@@ -14,6 +14,9 @@
     "zettelkasten",
     "para-method",
     "markdown",
+    "markdown-vault",
+    "local-first",
+    "knowledge-graph",
     "knowledge-management",
     "cli",
     "notes"
