@@ -34,7 +34,20 @@ export const settings: Settings = {
   watchEnabled: envBool("WATCH_ENABLED", true),
 };
 
-export const PARA_DIRS = ["projects", "areas", "resources", "archives"] as const;
+export function configureVault(vaultPath: string): string {
+  const resolved = resolve(process.cwd(), vaultPath);
+  settings.notesDir = resolved;
+  process.env.NOTES_DIR = resolved;
+  return resolved;
+}
+
+export const PARA_DIRS = [
+  "projects",
+  "areas",
+  "resources",
+  "questions",
+  "archives",
+] as const;
 
 export function ensureNotesDir(): void {
   for (const sub of PARA_DIRS) {

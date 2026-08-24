@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync, appendFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+  appendFileSync,
+} from "node:fs";
 import { resolve } from "node:path";
 import { REPO_ROOT } from "../utils/paths.js";
 import { settings, ensureNotesDir } from "../config.js";
@@ -31,7 +38,7 @@ function removePid(): void {
   }
 }
 
-export function getWatcherPid(): number | null {
+export function getWatcherPid(cleanupStale = true): number | null {
   if (!existsSync(PID_FILE)) return null;
   let pid: number;
   try {
@@ -44,7 +51,7 @@ export function getWatcherPid(): number | null {
     process.kill(pid, 0); // signal 0 = existence check
     return pid;
   } catch {
-    removePid();
+    if (cleanupStale) removePid();
     return null;
   }
 }
@@ -110,11 +117,17 @@ export async function runDaemon(): Promise<void> {
   try {
     while (!stopRequested) {
       const now = Date.now();
-      if (settings.commitInterval > 0 && now - lastCommit >= settings.commitInterval * 1000) {
+      if (
+        settings.commitInterval > 0 &&
+        now - lastCommit >= settings.commitInterval * 1000
+      ) {
         await doCommit();
         lastCommit = Date.now();
       }
-      if (settings.pushInterval > 0 && now - lastPush >= settings.pushInterval * 1000) {
+      if (
+        settings.pushInterval > 0 &&
+        now - lastPush >= settings.pushInterval * 1000
+      ) {
         await doPush();
         lastPush = Date.now();
       }
@@ -156,7 +169,7 @@ export interface WatcherStatus {
 }
 
 export function watcherStatus(): WatcherStatus {
-  const pid = getWatcherPid();
+  const pid = getWatcherPid(false);
   let lastLogs: string[] = [];
   if (existsSync(LOG_FILE)) {
     try {
