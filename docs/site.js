@@ -46,6 +46,36 @@ document.querySelectorAll("[data-year]").forEach((node) => {
   node.textContent = new Date().getFullYear();
 });
 
+document.querySelectorAll("[data-image-stack]").forEach((stack) => {
+  const cards = [...stack.querySelectorAll("[data-stack-card]")];
+
+  cards.forEach((card) => {
+    card.addEventListener("click", () => {
+      const selectedPosition = Number(card.dataset.position);
+
+      if (selectedPosition === 0) {
+        cards.forEach((item) => {
+          const position = Number(item.dataset.position);
+          item.dataset.position = String(
+            position === 0 ? cards.length - 1 : position - 1,
+          );
+        });
+      } else {
+        const frontCard = cards.find((item) => item.dataset.position === "0");
+        if (frontCard) frontCard.dataset.position = String(selectedPosition);
+        card.dataset.position = "0";
+      }
+
+      cards.forEach((item) => {
+        item.setAttribute(
+          "aria-pressed",
+          String(item.dataset.position === "0"),
+        );
+      });
+    });
+  });
+});
+
 if (
   "IntersectionObserver" in window &&
   !window.matchMedia("(prefers-reduced-motion: reduce)").matches

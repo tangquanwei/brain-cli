@@ -280,15 +280,82 @@
               <li>本地笔记捕获与编辑</li>
             </ul>
           </div>
-          <figure class="showcase-frame" data-reveal>
-            <img
-              src="../screenshots/dashboard.png"
-              width="1874"
-              height="972"
-              loading="lazy"
-              alt="2ndBrain CLI WebUI 仪表盘：知识库统计、链接健康和最近笔记"
-            />
-          </figure>
+          <div
+            class="showcase-stack"
+            data-image-stack
+            data-reveal
+            aria-label="可交互的 WebUI 截图展示"
+          >
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="0"
+              aria-label="将仪表盘截图移到最前面"
+              aria-pressed="true"
+            >
+              <img
+                src="../screenshots/dashboard.png"
+                width="1874"
+                height="972"
+                loading="lazy"
+                alt="显示知识库统计、链接健康和最近笔记的仪表盘"
+              />
+              <span>仪表盘</span>
+            </button>
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="1"
+              aria-label="将链接健康截图移到最前面"
+              aria-pressed="false"
+            >
+              <img
+                src="../screenshots/links.png"
+                width="1874"
+                height="972"
+                loading="lazy"
+                alt="显示知识库诊断结果的链接健康视图"
+              />
+              <span>链接健康</span>
+            </button>
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="2"
+              aria-label="将知识图谱截图移到最前面"
+              aria-pressed="false"
+            >
+              <img
+                src="../screenshots/graph.png"
+                width="1874"
+                height="972"
+                loading="lazy"
+                alt="展示笔记连接关系的交互式知识图谱"
+              />
+              <span>知识图谱</span>
+            </button>
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="3"
+              aria-label="将笔记截图移到最前面"
+              aria-pressed="false"
+            >
+              <img
+                src="../screenshots/notes.png"
+                width="1440"
+                height="813"
+                loading="lazy"
+                alt="本地笔记浏览与编辑界面"
+              />
+              <span>笔记</span>
+            </button>
+            <p class="stack-hint">点击截图，将它移到最前面 ↗</p>
+          </div>
         </div>
       </section>
 

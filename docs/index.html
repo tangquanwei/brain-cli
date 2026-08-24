@@ -308,15 +308,82 @@
               <li>Local note capture and editing</li>
             </ul>
           </div>
-          <figure class="showcase-frame" data-reveal>
-            <img
-              src="./screenshots/dashboard.png"
-              width="1874"
-              height="972"
-              loading="lazy"
-              alt="2ndBrain CLI WebUI dashboard showing vault statistics, link health, and recent notes"
-            />
-          </figure>
+          <div
+            class="showcase-stack"
+            data-image-stack
+            data-reveal
+            aria-label="Interactive WebUI screenshot gallery"
+          >
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="0"
+              aria-label="Bring the dashboard screenshot to the front"
+              aria-pressed="true"
+            >
+              <img
+                src="./screenshots/dashboard.png"
+                width="1874"
+                height="972"
+                loading="lazy"
+                alt="Dashboard with vault statistics, link health, and recent notes"
+              />
+              <span>Dashboard</span>
+            </button>
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="1"
+              aria-label="Bring the link-health screenshot to the front"
+              aria-pressed="false"
+            >
+              <img
+                src="./screenshots/links.png"
+                width="1874"
+                height="972"
+                loading="lazy"
+                alt="Link-health view with vault diagnostics"
+              />
+              <span>Link health</span>
+            </button>
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="2"
+              aria-label="Bring the knowledge-graph screenshot to the front"
+              aria-pressed="false"
+            >
+              <img
+                src="./screenshots/graph.png"
+                width="1874"
+                height="972"
+                loading="lazy"
+                alt="Interactive knowledge graph of connected notes"
+              />
+              <span>Knowledge graph</span>
+            </button>
+            <button
+              class="stack-card"
+              type="button"
+              data-stack-card
+              data-position="3"
+              aria-label="Bring the notes screenshot to the front"
+              aria-pressed="false"
+            >
+              <img
+                src="./screenshots/notes.png"
+                width="1440"
+                height="813"
+                loading="lazy"
+                alt="Local notes browser and editor"
+              />
+              <span>Notes</span>
+            </button>
+            <p class="stack-hint">Click a screenshot to bring it forward ↗</p>
+          </div>
         </div>
       </section>
 
