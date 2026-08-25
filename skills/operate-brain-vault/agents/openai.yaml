@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operate Brain Vault"
+  short_description: "Safely inspect, refactor, and back up Markdown vaults"
+  default_prompt: "Use $operate-brain-vault to inspect this Markdown vault and choose the safest Brain CLI workflow."

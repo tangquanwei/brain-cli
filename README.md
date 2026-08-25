@@ -48,6 +48,16 @@ Both `doctor` and link checks are read-only by default:
 brain --vault /absolute/path/to/your/notes links --stats --orphans
 ```
 
+### Agent Skills (Codex, OpenClaw, and more)
+
+Install both repository skills globally for Codex and OpenClaw with one command:
+
+```bash
+npx --yes skills add tangquanwei/brain-cli --skill '*' --global --agent codex openclaw --yes
+```
+
+This installs [`operate-brain-vault`](skills/operate-brain-vault/SKILL.md) for safe vault operations and [`maintain-brain-cli`](skills/maintain-brain-cli/SKILL.md) for repository development. Restart the agent if the new skills do not appear immediately. To target another [supported agent](https://github.com/vercel-labs/skills#supported-agents), add or replace an `--agent` value.
+
 ## Reproducible demo Vault
 
 The repository includes a small, fictional vault with no personal content. Use it to evaluate the scanner and WebUI before pointing the CLI at your own notes.

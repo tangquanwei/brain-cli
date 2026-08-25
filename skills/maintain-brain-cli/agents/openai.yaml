@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Brain CLI"
+  short_description: "Develop and verify Brain CLI changes safely"
+  default_prompt: "Use $maintain-brain-cli to implement and verify a focused change in the Brain CLI repository."

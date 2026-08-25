@@ -48,6 +48,16 @@ brain --vault /absolute/path/to/your/notes web --open
 brain --vault /absolute/path/to/your/notes links --stats --orphans
 ```
 
+### Agent Skills（Codex、OpenClaw 等）
+
+使用一条命令为 Codex 和 OpenClaw 全局安装本仓库的两个 Skill：
+
+```bash
+npx --yes skills add tangquanwei/brain-cli --skill '*' --global --agent codex openclaw --yes
+```
+
+该命令会安装用于安全操作知识库的 [`operate-brain-vault`](../skills/operate-brain-vault/SKILL.md)，以及用于维护本项目的 [`maintain-brain-cli`](../skills/maintain-brain-cli/SKILL.md)。如果新 Skill 没有立即出现，请重启 Agent。若要安装到[其他受支持的 Agent](https://github.com/vercel-labs/skills#supported-agents)，请增加或替换 `--agent` 后的名称。
+
 ## 可复现示例 Vault
 
 仓库包含一个体积很小、完全虚构且不含私人内容的示例知识库。你可以先用它评估扫描器和 WebUI，再连接自己的笔记。
