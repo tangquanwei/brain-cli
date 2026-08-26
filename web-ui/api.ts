@@ -8,6 +8,7 @@ import type {
   NoteSummary,
   ReviewNote,
   TreeFolderNode,
+  WhiteboardDocument,
 } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -51,4 +52,12 @@ export const api = {
     post<MoveResult>("/api/rename", { id, newName }),
   move: (id: string, newPath: string) =>
     post<MoveResult>("/api/move", { id, newPath }),
+  whiteboard: (id = "research-map") =>
+    request<WhiteboardDocument>(`/api/whiteboard?id=${encodeURIComponent(id)}`),
+  saveWhiteboard: (id: string, board: WhiteboardDocument) =>
+    request<WhiteboardDocument>("/api/whiteboard", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, board }),
+    }),
 };

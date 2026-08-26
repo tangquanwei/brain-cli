@@ -8,6 +8,7 @@ import { GraphView } from "./views/Graph";
 import { Links } from "./views/Links";
 import { Notes } from "./views/Notes";
 import { Review } from "./views/Review";
+import { Whiteboard } from "./views/Whiteboard";
 
 const VIEWS = [
   { key: "dashboard", icon: "📊", label: "nav.dashboard" },
@@ -15,6 +16,7 @@ const VIEWS = [
   { key: "review", icon: "📚", label: "nav.review" },
   { key: "links", icon: "🔗", label: "nav.links" },
   { key: "graph", icon: "🕸️", label: "nav.graph" },
+  { key: "whiteboard", icon: "▦", label: "nav.whiteboard" },
 ] as const;
 
 type ViewKey = (typeof VIEWS)[number]["key"];
@@ -132,6 +134,13 @@ function Shell() {
   const [route, setRoute] = useState<Route>(parseHash);
   const [capturing, setCapturing] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("brain-sidebar-collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash());
@@ -141,6 +150,18 @@ function Shell() {
 
   const mutated = useCallback(() => setDataVersion((v) => v + 1), []);
 
+  const toggleSidebar = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem("brain-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        // Keep the in-memory choice when browser storage is unavailable.
+      }
+      return next;
+    });
+  };
+
   // 订阅服务端文件变化推送（SSE），实时刷新当前视图
   useEffect(() => {
     const es = new EventSource("/api/events");
@@ -149,10 +170,31 @@ function Shell() {
   }, []);
 
   return (
-    <div className="app">
+    <div className={`app${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <nav className="sidebar">
-        <div className="brand">
-          2nd<span>Brain</span>
+        <div className="brand-row">
+          <div className="brand">
+            <span className="brand-full">
+              2nd<span>Brain</span>
+            </span>
+            <span className="brand-short">
+              <span className="brand-two">2</span>
+              <span>B</span>
+            </span>
+          </div>
+          <button
+            className="sidebar-toggle"
+            onClick={toggleSidebar}
+            aria-label={
+              sidebarCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
+            }
+            aria-pressed={sidebarCollapsed}
+            title={
+              sidebarCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
+            }
+          >
+            {sidebarCollapsed ? "›" : "‹"}
+          </button>
         </div>
         {VIEWS.map((v) => (
           <button
@@ -207,6 +249,7 @@ function Shell() {
         {route.view === "graph" && (
           <GraphView noteId={route.param} dataVersion={dataVersion} />
         )}
+        {route.view === "whiteboard" && <Whiteboard />}
       </main>
       {capturing && (
         <CaptureModal

@@ -21,6 +21,12 @@ import { openSafeNote, resolveSafeNote } from "../utils/safeOpenNote.js";
 import { getDashboard, listNotes, readNoteContent } from "./data.js";
 import { json, openBrowser, readJsonBody } from "./http.js";
 import { renderWebPage } from "./page.js";
+import {
+  DEFAULT_WHITEBOARD_ID,
+  emptyWhiteboard,
+  readWhiteboard,
+  writeWhiteboard,
+} from "./whiteboardData.js";
 
 export interface WebServerOptions {
   port: number;
@@ -179,12 +185,12 @@ export function createWebServer(opts: WebServerOptions): Server {
   };
   if (existsSync(settings.notesDir)) {
     watcher = chokidar.watch(settings.notesDir, {
-      ignored: /(^|[\\/])\../, // dotfiles
+      ignored: /(^|[\\/])\.(?!brain(?:[\\/]|$))/, // .brain stores local UI state
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 },
     });
     const onFsEvent = (path: string): void => {
-      if (/\.(md|markdown|txt)$/i.test(path)) broadcastChange();
+      if (/\.(md|markdown|txt|json)$/i.test(path)) broadcastChange();
     };
     watcher.on("add", onFsEvent);
     watcher.on("change", onFsEvent);
@@ -311,6 +317,19 @@ export function createWebServer(opts: WebServerOptions): Server {
         json(res, 200, projectLinkGraph(buildLinkGraph()));
         return;
       }
+      if (req.method === "GET" && path === "/api/whiteboard") {
+        const id = url.searchParams.get("id") ?? DEFAULT_WHITEBOARD_ID;
+        try {
+          const board = readWhiteboard(settings.notesDir, id);
+          json(res, 200, {
+            ...(board ?? emptyWhiteboard(id)),
+            persisted: board !== null,
+          });
+        } catch (error) {
+          json(res, 400, { error: (error as Error).message });
+        }
+        return;
+      }
 
       if (req.method === "POST" && path === "/api/open") {
         const body = (await readJsonBody(req)) as { id?: unknown };
@@ -377,6 +396,20 @@ export function createWebServer(opts: WebServerOptions): Server {
         };
         const result = await moveNote(body?.id, body?.newPath);
         json(res, result.status, result.body);
+        return;
+      }
+      if (req.method === "PUT" && path === "/api/whiteboard") {
+        const body = (await readJsonBody(req)) as {
+          id?: unknown;
+          board?: unknown;
+        };
+        const id =
+          typeof body?.id === "string" ? body.id : DEFAULT_WHITEBOARD_ID;
+        try {
+          json(res, 200, writeWhiteboard(settings.notesDir, id, body?.board));
+        } catch (error) {
+          json(res, 400, { error: (error as Error).message });
+        }
         return;
       }
 

@@ -135,3 +135,32 @@ export interface MoveResult {
   linkRewrites: number;
   assetMoves: number;
 }
+
+export type WhiteboardColor = "blue" | "yellow" | "green" | "pink";
+
+export interface WhiteboardCard {
+  id: string;
+  title: string;
+  body: string;
+  color: WhiteboardColor;
+  x: number;
+  y: number;
+  sourceId?: string;
+}
+
+export interface WhiteboardEdge {
+  id: string;
+  from: string;
+  to: string;
+}
+
+export interface WhiteboardDocument {
+  version: 1;
+  id: string;
+  title: string;
+  cards: WhiteboardCard[];
+  edges: WhiteboardEdge[];
+  viewport: { x: number; y: number; zoom: number };
+  updatedAt: string;
+  persisted?: boolean;
+}
