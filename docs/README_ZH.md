@@ -170,7 +170,7 @@ node dist/cli.js doctor "$PWD/examples/demo-vault/notes"
 node dist/cli.js --vault "$PWD/examples/demo-vault/notes" web --open
 ```
 
-该示例已验证包含 10 篇笔记和 16 条内部链接，断链、缺失引用、歧义 WikiLink 和孤岛笔记均为 0。可在 [Demo Vault README](../examples/demo-vault/README.md) 查看目录结构与预期关系。
+该示例已验证包含 10 篇笔记和 16 条内部链接，断链、缺失引用、歧义 WikiLink 和孤岛笔记均为 0。可在 [Demo Vault README](../examples/demo-vault/README.md) 查看目录结构、白板连接示例与预期关系，也可以阅读[中文说明](../examples/demo-vault/README_ZH.md)。
 
 ## 配置
 

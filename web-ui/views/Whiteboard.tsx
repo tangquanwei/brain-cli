@@ -72,6 +72,7 @@ export function Whiteboard() {
   const [query, setQuery] = useState("");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 24, y: 24 });
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [drag, setDrag] = useState<{
     kind: "card" | "canvas";
@@ -299,46 +300,7 @@ export function Whiteboard() {
 
   return (
     <div className="whiteboard-page">
-      <header className="whiteboard-head">
-        <div>
-          <div className="whiteboard-kicker">{t("whiteboard.kicker")}</div>
-          <h1 className="page-title">{t("nav.whiteboard")}</h1>
-        </div>
-        <div className="whiteboard-head-actions">
-          <button className="btn" onClick={importNotes}>
-            ↓ {t("whiteboard.import")}
-          </button>
-          <button className="btn primary" onClick={addCard}>
-            ＋ {t("whiteboard.addCard")}
-          </button>
-        </div>
-      </header>
-
       <div className="whiteboard-layout">
-        <aside className="whiteboard-rail">
-          <div className="rail-label">{t("whiteboard.boards")}</div>
-          <button className="board-item active">
-            <span className="board-dot" />
-            {t("whiteboard.mainBoard")}
-            <span className="board-count">{cards.length}</span>
-          </button>
-          <div className="rail-divider" />
-          <div className="rail-label">{t("whiteboard.tools")}</div>
-          <button className="rail-tool" onClick={addCard}>
-            ＋ <span>{t("whiteboard.newCard")}</span>
-          </button>
-          <button
-            className="rail-tool"
-            onClick={() => setPan({ x: 24, y: 24 })}
-          >
-            ⌖ <span>{t("whiteboard.center")}</span>
-          </button>
-          <button className="rail-tool" onClick={resetBoard}>
-            ↺ <span>{t("whiteboard.reset")}</span>
-          </button>
-          <div className="rail-tip">{t("whiteboard.tip")}</div>
-        </aside>
-
         <section className="whiteboard-stage">
           <div className="whiteboard-toolbar">
             <div className="board-title">
@@ -354,6 +316,26 @@ export function Whiteboard() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("whiteboard.search")}
             />
+            <button className="btn toolbar-action" onClick={importNotes}>
+              ↓ {t("whiteboard.import")}
+            </button>
+            <button className="btn primary toolbar-action" onClick={addCard}>
+              ＋ {t("whiteboard.addCard")}
+            </button>
+            <button
+              className="toolbar-btn"
+              onClick={() => setPan({ x: 24, y: 24 })}
+              aria-label={t("whiteboard.center")}
+            >
+              ⌖
+            </button>
+            <button
+              className="toolbar-btn"
+              onClick={resetBoard}
+              aria-label={t("whiteboard.reset")}
+            >
+              ↺
+            </button>
             <div className="zoom-controls">
               <button
                 className="icon-btn"
@@ -375,6 +357,22 @@ export function Whiteboard() {
                 ＋
               </button>
             </div>
+            <button
+              className="toolbar-btn inspector-toolbar-toggle"
+              onClick={() => setInspectorCollapsed((value) => !value)}
+              aria-label={
+                inspectorCollapsed
+                  ? t("whiteboard.expand")
+                  : t("whiteboard.collapse")
+              }
+              title={
+                inspectorCollapsed
+                  ? t("whiteboard.expand")
+                  : t("whiteboard.collapse")
+              }
+            >
+              {inspectorCollapsed ? "‹" : "›"}
+            </button>
           </div>
           <div
             className="whiteboard-canvas"
@@ -466,8 +464,11 @@ export function Whiteboard() {
           </div>
         </section>
 
-        <aside className={`whiteboard-inspector${selected ? " open" : ""}`}>
-          {selected ? (
+        <aside
+          className={`whiteboard-inspector${selected ? " open" : ""}${inspectorCollapsed ? " collapsed" : ""}`}
+        >
+          <div className="inspector-content">
+            {selected ? (
             <>
               <div className="inspector-head">
                 <span>{t("whiteboard.editCard")}</span>
@@ -569,13 +570,14 @@ export function Whiteboard() {
                 {t("whiteboard.delete")}
               </button>
             </>
-          ) : (
-            <div className="inspector-empty">
-              <div className="inspector-icon">✦</div>
-              <strong>{t("whiteboard.selectCard")}</strong>
-              <p>{t("whiteboard.selectHint")}</p>
-            </div>
-          )}
+            ) : (
+              <div className="inspector-empty">
+                <div className="inspector-icon">✦</div>
+                <strong>{t("whiteboard.selectCard")}</strong>
+                <p>{t("whiteboard.selectHint")}</p>
+              </div>
+            )}
+          </div>
         </aside>
       </div>
     </div>

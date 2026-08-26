@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "research-map",
+  "title": "Research map",
+  "cards": [
+    {
+      "id": "note-projects/Launch a Knowledge Toolkit.md",
+      "title": "Launch a Knowledge Toolkit",
+      "body": "Build a small local-first workflow that keeps Markdown notes portable and healthy.",
+      "color": "blue",
+      "x": 79.87109375,
+      "y": 80,
+      "sourceId": "projects/Launch a Knowledge Toolkit.md"
+    },
+    {
+      "id": "note-projects/Build a Reading Habit.md",
+      "title": "Build a Reading Habit",
+      "body": "Turn highlights into durable notes instead of collecting an unread queue.",
+      "color": "yellow",
+      "x": 330,
+      "y": 80.125,
+      "sourceId": "projects/Build a Reading Habit.md"
+    },
+    {
+      "id": "note-areas/Knowledge Management.md",
+      "title": "Knowledge Management",
+      "body": "A useful knowledge system stays inspectable, portable, and easy to maintain.",
+      "color": "green",
+      "x": 580,
+      "y": 80,
+      "sourceId": "areas/Knowledge Management.md"
+    },
+    {
+      "id": "note-areas/Writing.md",
+      "title": "Writing",
+      "body": "Writing exposes weak links between ideas and turns notes into reusable explanations.",
+      "color": "pink",
+      "x": 80,
+      "y": 285,
+      "sourceId": "areas/Writing.md"
+    },
+    {
+      "id": "note-resources/Markdown Links.md",
+      "title": "Markdown Links",
+      "body": "Standard Markdown links are readable in plain text and portable across editors.",
+      "color": "blue",
+      "x": 330,
+      "y": 285,
+      "sourceId": "resources/Markdown Links.md"
+    },
+    {
+      "id": "note-resources/Git Backups.md",
+      "title": "Git Backups",
+      "body": "Git provides local history first and optional remote synchronization later.",
+      "color": "yellow",
+      "x": 580,
+      "y": 285,
+      "sourceId": "resources/Git Backups.md"
+    },
+    {
+      "id": "note-resources/Local-first Principle.md",
+      "title": "Local-first Principle",
+      "body": "The user owns the files, chooses the editor, and decides when anything leaves the machine.",
+      "color": "green",
+      "x": 80,
+      "y": 490,
+      "sourceId": "resources/Local-first Principle.md"
+    },
+    {
+      "id": "note-resources/Graph Exploration.md",
+      "title": "Graph Exploration",
+      "body": "A graph is most useful when it helps answer a question instead of becoming decoration.",
+      "color": "pink",
+      "x": 330,
+      "y": 490,
+      "sourceId": "resources/Graph Exploration.md"
+    }
+  ],
+  "edges": [
+    {
+      "id": "toolkit->reading",
+      "from": "note-projects/Launch a Knowledge Toolkit.md",
+      "to": "note-projects/Build a Reading Habit.md"
+    },
+    {
+      "id": "reading->management",
+      "from": "note-projects/Build a Reading Habit.md",
+      "to": "note-areas/Knowledge Management.md"
+    },
+    {
+      "id": "management->markdown",
+      "from": "note-areas/Knowledge Management.md",
+      "to": "note-resources/Markdown Links.md"
+    },
+    {
+      "id": "markdown->git",
+      "from": "note-resources/Markdown Links.md",
+      "to": "note-resources/Git Backups.md"
+    },
+    {
+      "id": "git->local-first",
+      "from": "note-resources/Git Backups.md",
+      "to": "note-resources/Local-first Principle.md"
+    },
+    {
+      "id": "writing->graph",
+      "from": "note-areas/Writing.md",
+      "to": "note-resources/Graph Exploration.md"
+    },
+    {
+      "id": "management->writing",
+      "from": "note-areas/Knowledge Management.md",
+      "to": "note-areas/Writing.md"
+    }
+  ],
+  "viewport": {
+    "x": 24,
+    "y": 24,
+    "zoom": 1
+  },
+  "updatedAt": "2026-08-26T15:23:45.177Z"
+}

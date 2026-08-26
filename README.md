@@ -170,7 +170,7 @@ node dist/cli.js doctor "$PWD/examples/demo-vault/notes"
 node dist/cli.js --vault "$PWD/examples/demo-vault/notes" web --open
 ```
 
-The demo is verified with 10 notes, 16 internal links, and no broken links, missing references, ambiguous WikiLinks, or orphan notes. See its [structure and expected relationships](examples/demo-vault/README.md).
+The demo is verified with 10 notes, 16 internal links, and no broken links, missing references, ambiguous WikiLinks, or orphan notes. See its [structure, whiteboard edges, and expected relationships](examples/demo-vault/README.md) (also available in [中文](examples/demo-vault/README_ZH.md)).
 
 ## Configuration
 

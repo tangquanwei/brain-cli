@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "research-map",
+  "title": "研究地图",
+  "cards": [
+    {
+      "id": "note-projects/启动知识工具.md",
+      "title": "启动知识工具",
+      "body": "构建一套小型的本地优先工作流，让 Markdown 笔记保持可迁移和健康。",
+      "color": "blue",
+      "x": 80,
+      "y": 80,
+      "sourceId": "projects/启动知识工具.md"
+    },
+    {
+      "id": "note-projects/建立阅读习惯.md",
+      "title": "建立阅读习惯",
+      "body": "把重点整理成耐用的笔记，而不是积攒一条永远读不完的清单。",
+      "color": "yellow",
+      "x": 330,
+      "y": 80,
+      "sourceId": "projects/建立阅读习惯.md"
+    },
+    {
+      "id": "note-areas/知识管理.md",
+      "title": "知识管理",
+      "body": "一个有用的知识系统应该易于检查、迁移和维护。",
+      "color": "green",
+      "x": 580,
+      "y": 80,
+      "sourceId": "areas/知识管理.md"
+    },
+    {
+      "id": "note-areas/写作.md",
+      "title": "写作",
+      "body": "写作能暴露想法之间的薄弱连接，并把笔记变成可复用的解释。",
+      "color": "pink",
+      "x": 80,
+      "y": 285,
+      "sourceId": "areas/写作.md"
+    },
+    {
+      "id": "note-resources/Markdown链接.md",
+      "title": "Markdown 链接",
+      "body": "标准 Markdown 链接以纯文本形式可读，并且能在不同编辑器之间迁移。",
+      "color": "blue",
+      "x": 330,
+      "y": 285,
+      "sourceId": "resources/Markdown链接.md"
+    },
+    {
+      "id": "note-resources/Git备份.md",
+      "title": "Git 备份",
+      "body": "Git 先提供本地历史，也可以在之后选择远程同步。",
+      "color": "yellow",
+      "x": 580,
+      "y": 285,
+      "sourceId": "resources/Git备份.md"
+    },
+    {
+      "id": "note-resources/本地优先原则.md",
+      "title": "本地优先原则",
+      "body": "用户拥有文件，选择编辑器，并决定什么内容离开自己的设备。",
+      "color": "green",
+      "x": 80,
+      "y": 490,
+      "sourceId": "resources/本地优先原则.md"
+    },
+    {
+      "id": "note-resources/图谱探索.md",
+      "title": "图谱探索",
+      "body": "只有在图谱帮助回答问题，而不是变成装饰时，它才最有价值。",
+      "color": "pink",
+      "x": 330,
+      "y": 490,
+      "sourceId": "resources/图谱探索.md"
+    }
+  ],
+  "edges": [
+    {
+      "id": "toolkit->reading",
+      "from": "note-projects/启动知识工具.md",
+      "to": "note-projects/建立阅读习惯.md"
+    },
+    {
+      "id": "reading->management",
+      "from": "note-projects/建立阅读习惯.md",
+      "to": "note-areas/知识管理.md"
+    },
+    {
+      "id": "management->markdown",
+      "from": "note-areas/知识管理.md",
+      "to": "note-resources/Markdown链接.md"
+    },
+    {
+      "id": "markdown->git",
+      "from": "note-resources/Markdown链接.md",
+      "to": "note-resources/Git备份.md"
+    },
+    {
+      "id": "git->local-first",
+      "from": "note-resources/Git备份.md",
+      "to": "note-resources/本地优先原则.md"
+    },
+    {
+      "id": "writing->graph",
+      "from": "note-areas/写作.md",
+      "to": "note-resources/图谱探索.md"
+    },
+    {
+      "id": "management->writing",
+      "from": "note-areas/知识管理.md",
+      "to": "note-areas/写作.md"
+    }
+  ],
+  "viewport": {
+    "x": 24,
+    "y": 24,
+    "zoom": 1
+  },
+  "updatedAt": "2026-08-26T00:00:00.000Z"
+}
