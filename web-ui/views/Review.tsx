@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { navigate } from "../App";
+import { Modal } from "../components/Modal";
 import { useI18n, type TranslationKey } from "../i18n";
 import type { ReviewNote } from "../types";
 
@@ -16,18 +17,35 @@ export function Review() {
   const [active, setActive] = useState<string | null>(null);
   const [notes, setNotes] = useState<ReviewNote[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tagsModalOpen, setTagsModalOpen] = useState(false);
+  const [tagsInput, setTagsInput] = useState("");
 
   const run = async (mode: string) => {
     let extra = "";
     if (mode === "tags") {
-      const tags = prompt(t("review.tagsPrompt"));
-      if (!tags) return;
-      extra = `&tags=${encodeURIComponent(tags)}`;
+      setTagsModalOpen(true);
+      return;
     }
     setActive(mode);
     setLoading(true);
     try {
       const d = await api.review(mode, extra);
+      setNotes(d.notes);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runTags = async () => {
+    if (!tagsInput.trim()) return;
+    setTagsModalOpen(false);
+    setActive("tags");
+    setLoading(true);
+    try {
+      const d = await api.review(
+        "tags",
+        `&tags=${encodeURIComponent(tagsInput.trim())}`,
+      );
       setNotes(d.notes);
     } finally {
       setLoading(false);
@@ -82,6 +100,37 @@ export function Review() {
             </div>
           )}
         </>
+      )}
+      {tagsModalOpen && (
+        <Modal
+          title={t("review.tagsTitle")}
+          onClose={() => setTagsModalOpen(false)}
+        >
+          <div className="field">
+            <label>{t("review.tagsPrompt")}</label>
+            <input
+              autoFocus
+              value={tagsInput}
+              onChange={(event) => setTagsInput(event.target.value)}
+              placeholder={t("review.tagsPlaceholder")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void runTags();
+              }}
+            />
+          </div>
+          <div className="actions">
+            <button className="btn" onClick={() => setTagsModalOpen(false)}>
+              {t("common.cancel")}
+            </button>
+            <button
+              className="btn primary"
+              disabled={!tagsInput.trim()}
+              onClick={() => void runTags()}
+            >
+              {t("review.runTags")}
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

@@ -1,79 +1,135 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "research-map",
   "title": "研究地图",
   "cards": [
     {
       "id": "note-projects/启动知识工具.md",
+      "kind": "note",
       "title": "启动知识工具",
       "body": "构建一套小型的本地优先工作流，让 Markdown 笔记保持可迁移和健康。",
       "color": "blue",
       "x": 80,
       "y": 80,
-      "sourceId": "projects/启动知识工具.md"
+      "sourceId": "projects/启动知识工具.md",
+      "source": {
+        "noteId": "projects/启动知识工具.md"
+      },
+      "zIndex": 0,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-projects/建立阅读习惯.md",
+      "kind": "note",
       "title": "建立阅读习惯",
       "body": "把重点整理成耐用的笔记，而不是积攒一条永远读不完的清单。",
       "color": "yellow",
       "x": 330,
       "y": 80,
-      "sourceId": "projects/建立阅读习惯.md"
+      "sourceId": "projects/建立阅读习惯.md",
+      "source": {
+        "noteId": "projects/建立阅读习惯.md"
+      },
+      "zIndex": 1,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-areas/知识管理.md",
+      "kind": "note",
       "title": "知识管理",
       "body": "一个有用的知识系统应该易于检查、迁移和维护。",
       "color": "green",
       "x": 580,
       "y": 80,
-      "sourceId": "areas/知识管理.md"
+      "sourceId": "areas/知识管理.md",
+      "source": {
+        "noteId": "areas/知识管理.md"
+      },
+      "zIndex": 2,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-areas/写作.md",
+      "kind": "note",
       "title": "写作",
       "body": "写作能暴露想法之间的薄弱连接，并把笔记变成可复用的解释。",
       "color": "pink",
       "x": 80,
       "y": 285,
-      "sourceId": "areas/写作.md"
+      "sourceId": "areas/写作.md",
+      "source": {
+        "noteId": "areas/写作.md"
+      },
+      "zIndex": 3,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-resources/Markdown链接.md",
+      "kind": "note",
       "title": "Markdown 链接",
       "body": "标准 Markdown 链接以纯文本形式可读，并且能在不同编辑器之间迁移。",
       "color": "blue",
       "x": 330,
       "y": 285,
-      "sourceId": "resources/Markdown链接.md"
+      "sourceId": "resources/Markdown链接.md",
+      "source": {
+        "noteId": "resources/Markdown链接.md"
+      },
+      "zIndex": 4,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-resources/Git备份.md",
+      "kind": "note",
       "title": "Git 备份",
       "body": "Git 先提供本地历史，也可以在之后选择远程同步。",
       "color": "yellow",
       "x": 580,
       "y": 285,
-      "sourceId": "resources/Git备份.md"
+      "sourceId": "resources/Git备份.md",
+      "source": {
+        "noteId": "resources/Git备份.md"
+      },
+      "zIndex": 5,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-resources/本地优先原则.md",
+      "kind": "note",
       "title": "本地优先原则",
       "body": "用户拥有文件，选择编辑器，并决定什么内容离开自己的设备。",
       "color": "green",
       "x": 80,
       "y": 490,
-      "sourceId": "resources/本地优先原则.md"
+      "sourceId": "resources/本地优先原则.md",
+      "source": {
+        "noteId": "resources/本地优先原则.md"
+      },
+      "zIndex": 6,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     },
     {
       "id": "note-resources/图谱探索.md",
+      "kind": "note",
       "title": "图谱探索",
       "body": "只有在图谱帮助回答问题，而不是变成装饰时，它才最有价值。",
       "color": "pink",
       "x": 330,
       "y": 490,
-      "sourceId": "resources/图谱探索.md"
+      "sourceId": "resources/图谱探索.md",
+      "source": {
+        "noteId": "resources/图谱探索.md"
+      },
+      "zIndex": 7,
+      "createdAt": "2026-08-27T04:31:06.465Z",
+      "updatedAt": "2026-08-27T04:31:06.465Z"
     }
   ],
   "edges": [
@@ -118,5 +174,5 @@
     "y": 24,
     "zoom": 1
   },
-  "updatedAt": "2026-08-26T00:00:00.000Z"
+  "updatedAt": "2026-08-27T07:35:22.195Z"
 }

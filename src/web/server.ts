@@ -31,7 +31,9 @@ import { json, openBrowser, readJsonBody } from "./http.js";
 import { renderWebPage } from "./page.js";
 import {
   DEFAULT_WHITEBOARD_ID,
+  deleteWhiteboard,
   emptyWhiteboard,
+  listWhiteboards,
   readWhiteboard,
   writeWhiteboard,
 } from "./whiteboardData.js";
@@ -414,6 +416,10 @@ export function createWebServer(opts: WebServerOptions): Server {
         }
         return;
       }
+      if (req.method === "GET" && path === "/api/whiteboards") {
+        json(res, 200, listWhiteboards(settings.notesDir));
+        return;
+      }
 
       if (req.method === "POST" && path === "/api/open") {
         const body = (await readJsonBody(req)) as { id?: unknown };
@@ -494,6 +500,72 @@ export function createWebServer(opts: WebServerOptions): Server {
         } catch (error) {
           json(res, 400, { error: (error as Error).message });
         }
+        return;
+      }
+      if (req.method === "POST" && path === "/api/whiteboards") {
+        const body = (await readJsonBody(req)) as {
+          action?: unknown;
+          id?: unknown;
+          sourceId?: unknown;
+          title?: unknown;
+        };
+        const action = typeof body.action === "string" ? body.action : "create";
+        const id = typeof body.id === "string" ? body.id : "";
+        if (action === "delete") {
+          deleteWhiteboard(settings.notesDir, id);
+          json(res, 200, { ok: true });
+          return;
+        }
+        if (action === "rename") {
+          const board = readWhiteboard(settings.notesDir, id);
+          if (!board) {
+            json(res, 404, { error: "unknown-whiteboard" });
+            return;
+          }
+          board.title =
+            typeof body.title === "string" && body.title.trim()
+              ? body.title.trim()
+              : board.title;
+          json(res, 200, writeWhiteboard(settings.notesDir, id, board));
+          return;
+        }
+        if (action === "copy") {
+          const sourceId =
+            typeof body.sourceId === "string" ? body.sourceId : id;
+          const source = readWhiteboard(settings.notesDir, sourceId);
+          if (!source) {
+            json(res, 404, { error: "unknown-whiteboard" });
+            return;
+          }
+          const targetId = id || `${sourceId}-copy`;
+          const copy = {
+            ...source,
+            id: targetId,
+            title:
+              typeof body.title === "string" && body.title.trim()
+                ? body.title.trim()
+                : `${source.title} copy`,
+          };
+          json(res, 200, writeWhiteboard(settings.notesDir, targetId, copy));
+          return;
+        }
+        const targetId = id || `board-${Date.now()}`;
+        if (readWhiteboard(settings.notesDir, targetId)) {
+          json(res, 409, { error: "whiteboard-exists" });
+          return;
+        }
+        json(
+          res,
+          200,
+          writeWhiteboard(settings.notesDir, targetId, {
+            ...emptyWhiteboard(targetId),
+            title:
+              typeof body.title === "string" && body.title.trim()
+                ? body.title.trim()
+                : targetId,
+            version: 2,
+          }),
+        );
         return;
       }
 

@@ -9,6 +9,7 @@ import type {
   ReviewNote,
   TreeFolderNode,
   WhiteboardDocument,
+  WhiteboardSummary,
   SettingsSnapshot,
 } from "./types";
 
@@ -55,11 +56,23 @@ export const api = {
     post<MoveResult>("/api/move", { id, newPath }),
   whiteboard: (id = "research-map") =>
     request<WhiteboardDocument>(`/api/whiteboard?id=${encodeURIComponent(id)}`),
+  whiteboards: () => request<WhiteboardSummary[]>("/api/whiteboards"),
   saveWhiteboard: (id: string, board: WhiteboardDocument) =>
     request<WhiteboardDocument>("/api/whiteboard", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id, board }),
+    }),
+  whiteboardAction: (body: {
+    action: "create" | "rename" | "copy" | "delete";
+    id?: string;
+    sourceId?: string;
+    title?: string;
+  }) =>
+    request<WhiteboardDocument | { ok: boolean }>("/api/whiteboards", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
     }),
   settings: () => request<SettingsSnapshot>("/api/settings"),
   saveSettings: (values: Partial<SettingsSnapshot["values"]>) =>

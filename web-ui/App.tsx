@@ -238,7 +238,12 @@ function Shell() {
         {route.view === "graph" && (
           <GraphView noteId={route.param} dataVersion={dataVersion} />
         )}
-        {route.view === "whiteboard" && <Whiteboard />}
+        {route.view === "whiteboard" && (
+          <Whiteboard
+            boardId={route.param ?? "research-map"}
+            dataVersion={dataVersion}
+          />
+        )}
         {route.view === "settings" && <Settings dataVersion={dataVersion} />}
       </main>
       {capturing && (

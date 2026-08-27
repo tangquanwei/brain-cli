@@ -137,32 +137,61 @@ export interface MoveResult {
 }
 
 export type WhiteboardColor = "blue" | "yellow" | "green" | "pink";
+export type WhiteboardCardKind = "note" | "text" | "block" | "attachment";
 
 export interface WhiteboardCard {
   id: string;
+  kind?: WhiteboardCardKind;
   title: string;
   body: string;
   color: WhiteboardColor;
   x: number;
   y: number;
   sourceId?: string;
+  source?: { noteId?: string; blockId?: string; path?: string };
+  tags?: string[];
+  zIndex?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WhiteboardEdge {
   id: string;
   from: string;
   to: string;
+  label?: string;
+  kind?: "semantic" | "supports" | "contradicts" | "causes" | "references";
 }
 
 export interface WhiteboardDocument {
-  version: 1;
+  version: 1 | 2;
   id: string;
   title: string;
   cards: WhiteboardCard[];
+  frames?: WhiteboardFrame[];
   edges: WhiteboardEdge[];
   viewport: { x: number; y: number; zoom: number };
   updatedAt: string;
   persisted?: boolean;
+}
+
+export interface WhiteboardFrame {
+  id: string;
+  title: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color?: WhiteboardColor;
+  zIndex?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WhiteboardSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
 }
 
 export type EnvKey =
