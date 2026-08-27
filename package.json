@@ -25,7 +25,8 @@
     "brain": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    ".env.example"
   ],
   "scripts": {
     "build": "tsup",

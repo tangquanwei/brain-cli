@@ -3,6 +3,14 @@ import { createServer, type Server, type ServerResponse } from "node:http";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chokidar, { type FSWatcher } from "chokidar";
+import {
+  ENV_KEYS,
+  homeEnvPath,
+  notesEnvPath,
+  readSettingsSnapshot,
+  reloadSettings,
+  writeSettings,
+} from "../config.js";
 import { settings } from "../config.js";
 import { runCapture, type NoteType } from "../commands/capture.js";
 import {
@@ -175,6 +183,8 @@ export function createWebServer(opts: WebServerOptions): Server {
   // 监听 notes 目录变化，通过 SSE 推送给前端实时刷新
   const sseClients = new Set<ServerResponse>();
   let watcher: FSWatcher | null = null;
+  let envWatcher: FSWatcher | null = null;
+  let watchedNotesDir = "";
   let broadcastTimer: ReturnType<typeof setTimeout> | null = null;
   const broadcastChange = (): void => {
     if (broadcastTimer) return; // 防抖：已有一次待推送
@@ -183,8 +193,14 @@ export function createWebServer(opts: WebServerOptions): Server {
       for (const res of sseClients) res.write(`data: {"type":"change"}\n\n`);
     }, 300);
   };
-  if (existsSync(settings.notesDir)) {
-    watcher = chokidar.watch(settings.notesDir, {
+  const refreshNotesWatcher = (): void => {
+    const nextNotesDir = settings.notesDir;
+    if (nextNotesDir === watchedNotesDir && watcher) return;
+    const previous = watcher;
+    watcher = null;
+    watchedNotesDir = nextNotesDir;
+    void previous?.close();
+    watcher = chokidar.watch(nextNotesDir, {
       ignored: /(^|[\\/])\.(?!brain(?:[\\/]|$))/, // .brain stores local UI state
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 },
@@ -195,7 +211,22 @@ export function createWebServer(opts: WebServerOptions): Server {
     watcher.on("add", onFsEvent);
     watcher.on("change", onFsEvent);
     watcher.on("unlink", onFsEvent);
-  }
+  };
+  refreshNotesWatcher();
+  const envPaths = () => [notesEnvPath(settings.notesDir), homeEnvPath()];
+  envWatcher = chokidar.watch(envPaths(), {
+    ignoreInitial: true,
+    awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 100 },
+  });
+  const onEnvEvent = (): void => {
+    reloadSettings();
+    refreshNotesWatcher();
+    envWatcher?.add(envPaths());
+    broadcastChange();
+  };
+  envWatcher.on("add", onEnvEvent);
+  envWatcher.on("change", onEnvEvent);
+  envWatcher.on("unlink", onEnvEvent);
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", base);
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -238,6 +269,59 @@ export function createWebServer(opts: WebServerOptions): Server {
           clearInterval(heartbeat);
           sseClients.delete(res);
         });
+        return;
+      }
+
+      if (req.method === "GET" && path === "/api/settings") {
+        json(res, 200, readSettingsSnapshot());
+        return;
+      }
+      if (req.method === "PUT" && path === "/api/settings") {
+        const body = (await readJsonBody(req)) as {
+          values?: unknown;
+        };
+        if (!body.values || typeof body.values !== "object") {
+          json(res, 400, { error: "invalid-settings" });
+          return;
+        }
+        const values: Partial<Record<(typeof ENV_KEYS)[number], string>> = {};
+        for (const key of ENV_KEYS) {
+          const value = (body.values as Record<string, unknown>)[key];
+          if (value !== undefined) {
+            if (
+              typeof value !== "string" ||
+              value.length > 2000 ||
+              /[\r\n]/.test(value)
+            ) {
+              json(res, 400, { error: `invalid-setting-${key}` });
+              return;
+            }
+            if (key === "NOTES_DIR" && !value.trim()) {
+              json(res, 400, { error: `invalid-setting-${key}` });
+              return;
+            }
+            if (
+              (key === "COMMIT_INTERVAL" || key === "PUSH_INTERVAL") &&
+              !/^\d+$/.test(value.trim())
+            ) {
+              json(res, 400, { error: `invalid-setting-${key}` });
+              return;
+            }
+            if (
+              (key === "GIT_AUTO_COMMIT" || key === "WATCH_ENABLED") &&
+              !["true", "false", "1", "0", "yes", "no"].includes(
+                value.trim().toLowerCase(),
+              )
+            ) {
+              json(res, 400, { error: `invalid-setting-${key}` });
+              return;
+            }
+            values[key] = value;
+          }
+        }
+        json(res, 200, writeSettings(values));
+        reloadSettings();
+        broadcastChange();
         return;
       }
 
@@ -429,6 +513,7 @@ export function createWebServer(opts: WebServerOptions): Server {
   server.on("close", () => {
     if (broadcastTimer) clearTimeout(broadcastTimer);
     void watcher?.close();
+    void envWatcher?.close();
   });
 
   server.listen(opts.port, "127.0.0.1", () => {

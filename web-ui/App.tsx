@@ -8,6 +8,7 @@ import { GraphView } from "./views/Graph";
 import { Links } from "./views/Links";
 import { Notes } from "./views/Notes";
 import { Review } from "./views/Review";
+import { Settings } from "./views/Settings";
 import { Whiteboard } from "./views/Whiteboard";
 
 const VIEWS = [
@@ -19,7 +20,7 @@ const VIEWS = [
   { key: "whiteboard", icon: "▦", label: "nav.whiteboard" },
 ] as const;
 
-type ViewKey = (typeof VIEWS)[number]["key"];
+type ViewKey = (typeof VIEWS)[number]["key"] | "settings";
 
 export interface Route {
   view: ViewKey;
@@ -29,9 +30,10 @@ export interface Route {
 function parseHash(): Route {
   const hash = location.hash.replace(/^#\/?/, "");
   const [view, ...rest] = hash.split("/");
-  const key = VIEWS.some((v) => v.key === view)
-    ? (view as ViewKey)
-    : "dashboard";
+  const key =
+    view === "settings" || VIEWS.some((v) => v.key === view)
+      ? (view as ViewKey)
+      : "dashboard";
   return {
     view: key,
     param: rest.length ? decodeURIComponent(rest.join("/")) : null,
@@ -130,7 +132,7 @@ function CaptureModal({
 }
 
 function Shell() {
-  const { language, setLanguage, t } = useI18n();
+  const { t } = useI18n();
   const [route, setRoute] = useState<Route>(parseHash);
   const [capturing, setCapturing] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
@@ -207,32 +209,19 @@ function Shell() {
           </button>
         ))}
         <div className="spacer" />
-        <div
-          className="language-control"
-          role="group"
-          aria-label={t("language.label")}
-        >
-          <button
-            type="button"
-            className={language === "zh" ? "active" : ""}
-            aria-pressed={language === "zh"}
-            title={t("language.zh")}
-            onClick={() => setLanguage("zh")}
-          >
-            中
-          </button>
-          <button
-            type="button"
-            className={language === "en" ? "active" : ""}
-            aria-pressed={language === "en"}
-            title={t("language.en")}
-            onClick={() => setLanguage("en")}
-          >
-            EN
-          </button>
-        </div>
         <button className="capture-btn" onClick={() => setCapturing(true)}>
           ＋ <span>{t("nav.capture")}</span>
+        </button>
+        <button
+          className={`settings-btn${route.view === "settings" ? " active" : ""}`}
+          onClick={() =>
+            navigate(route.view === "settings" ? "dashboard" : "settings")
+          }
+          aria-expanded={route.view === "settings"}
+          aria-label={t("settings.open")}
+          title={t("settings.open")}
+        >
+          ⚙ <span>{t("settings.title")}</span>
         </button>
       </nav>
       <main className="main">
@@ -250,6 +239,7 @@ function Shell() {
           <GraphView noteId={route.param} dataVersion={dataVersion} />
         )}
         {route.view === "whiteboard" && <Whiteboard />}
+        {route.view === "settings" && <Settings dataVersion={dataVersion} />}
       </main>
       {capturing && (
         <CaptureModal

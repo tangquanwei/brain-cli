@@ -164,3 +164,17 @@ export interface WhiteboardDocument {
   updatedAt: string;
   persisted?: boolean;
 }
+
+export type EnvKey =
+  | "NOTES_DIR"
+  | "GIT_AUTO_COMMIT"
+  | "WATCH_ENABLED"
+  | "PUSH_INTERVAL"
+  | "COMMIT_INTERVAL";
+
+export interface SettingsSnapshot {
+  values: Record<EnvKey, string>;
+  sources: Record<EnvKey, "notes" | "home" | "process" | "default">;
+  files: { notes: string; home: string; writeTarget: string };
+  example: string;
+}

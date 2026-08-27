@@ -9,6 +9,7 @@ import type {
   ReviewNote,
   TreeFolderNode,
   WhiteboardDocument,
+  SettingsSnapshot,
 } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -59,5 +60,12 @@ export const api = {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id, board }),
+    }),
+  settings: () => request<SettingsSnapshot>("/api/settings"),
+  saveSettings: (values: Partial<SettingsSnapshot["values"]>) =>
+    request<SettingsSnapshot>("/api/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ values }),
     }),
 };

@@ -35,7 +35,7 @@ body {
 /* ── 侧边栏 ── */
 .sidebar {
   background:var(--sidebar); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
-  border-right:1px solid var(--line-soft); padding:20px 12px; display:flex; flex-direction:column; gap:2px;
+  border-right:1px solid var(--line-soft); padding:20px 12px; display:flex; flex-direction:column; gap:2px; position:relative;
 }
 .brand-row { display:flex; align-items:center; gap:4px; min-width:0; }
 .brand { flex:1; min-width:0; font-size:19px; font-weight:700; letter-spacing:-.02em; padding:4px 8px 18px 12px; }
@@ -67,6 +67,21 @@ body {
   color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer;
 }
 .capture-btn:hover { filter:brightness(1.08); }
+.settings-btn {
+  margin:4px 8px 0; padding:8px 0; border:1px solid var(--line-soft); border-radius:9px;
+  background:transparent; color:var(--secondary); font:inherit; cursor:pointer;
+}
+.settings-btn:hover,.settings-btn.active { color:var(--accent); border-color:var(--accent); background:var(--hover); }
+.settings-panel {
+  position:absolute; z-index:20; left:10px; bottom:72px; width:212px; padding:12px;
+  background:var(--card); border:1px solid var(--line-soft); border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,.16);
+}
+.settings-panel-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:9px; border-bottom:1px solid var(--line-soft); }
+.settings-panel-head strong { font-size:13px; }
+.settings-close { width:26px; height:26px; border:1px solid var(--line-soft); border-radius:7px; background:transparent; color:var(--secondary); font:inherit; font-size:17px; line-height:1; cursor:pointer; }
+.settings-close:hover { color:var(--accent); border-color:var(--accent); }
+.settings-label { color:var(--secondary); font-size:11px; margin:11px 0 5px; }
+.settings-panel .language-control { margin:0; }
 
 .app.sidebar-collapsed .brand-row { justify-content:center; }
 .app.sidebar-collapsed .brand { flex:none; padding:4px 0 18px; text-align:center; font-size:17px; }
@@ -78,13 +93,46 @@ body {
 .app.sidebar-collapsed .nav-item .txt,
 .app.sidebar-collapsed .capture-btn span { display:none; }
 .app.sidebar-collapsed .capture-btn { margin-left:8px; margin-right:8px; }
+.app.sidebar-collapsed .settings-btn { margin-left:8px; margin-right:8px; }
+.app.sidebar-collapsed .settings-btn span { display:none; }
 .app.sidebar-collapsed .language-control { grid-template-columns:1fr; }
 .app.sidebar-collapsed .language-control button { width:100%; padding-left:0; padding-right:0; }
+.app.sidebar-collapsed .settings-panel { left:8px; }
+.app.sidebar-collapsed .settings-panel .language-control { grid-template-columns:1fr 1fr; }
+.app.sidebar-collapsed .settings-panel .language-control button { width:auto; padding-left:5px; padding-right:5px; }
 
 /* ── 主区域 ── */
 .main { overflow:auto; padding:28px 34px 60px; min-width:0; }
 .page-title { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 0 20px; }
 .muted { color:var(--secondary); }
+
+/* 设置页 */
+.settings-page { max-width:1120px; }
+.settings-page-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.settings-page-head .page-title { margin:0; }
+.settings-kicker { color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:3px; }
+.settings-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr); gap:18px; align-items:start; }
+.settings-form,.settings-example { min-width:0; }
+.settings-section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:17px; }
+.settings-section-head h2 { margin:0; font-size:16px; }
+.settings-section-head p { margin:4px 0 0; color:var(--secondary); font-size:12px; line-height:1.5; }
+.settings-live { flex:none; color:var(--ok); font-size:11px; padding:3px 8px; border-radius:980px; background:color-mix(in srgb,var(--ok) 13%,transparent); }
+.settings-field { display:block; margin-bottom:14px; }
+.settings-field > span { display:block; color:var(--secondary); font-size:12px; margin-bottom:5px; }
+.settings-field > input:not([type="checkbox"]) { width:100%; }
+.settings-field small { display:block; color:var(--secondary); font-size:10px; margin-top:4px; }
+.settings-check { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:0 8px; }
+.settings-check > input { width:auto; margin:0; }
+.settings-check > span { margin:0; color:var(--text); }
+.settings-check small { grid-column:2; }
+.settings-field .language-control { width:fit-content; margin:0; }
+.settings-number-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.settings-paths { border-top:1px solid var(--line-soft); margin-top:17px; padding-top:12px; display:grid; gap:8px; }
+.settings-paths div { display:grid; gap:3px; }
+.settings-paths span { color:var(--secondary); font-size:10px; }
+.settings-paths code { font-size:11px; overflow-wrap:anywhere; }
+.settings-example pre { margin:0; max-height:570px; overflow:auto; background:var(--hover); border-radius:9px; padding:12px; font:11px/1.55 ui-monospace,"SF Mono",Menlo,monospace; white-space:pre-wrap; }
+.settings-loading { color:var(--secondary); }
 
 /* 卡片 */
 .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:14px; margin-bottom:22px; }
@@ -303,6 +351,10 @@ label.toggle { display:flex; gap:5px; align-items:center; color:var(--secondary)
   .language-control { margin:4px 0 8px; }
   .language-control button { padding:3px 1px; font-size:9px; }
   .notes-grid, .graph-body { grid-template-columns:1fr; }
+  .settings-page-head { align-items:center; }
+  .settings-page-head .page-title { font-size:22px; }
+  .settings-grid { grid-template-columns:1fr; }
+  .settings-number-grid { grid-template-columns:1fr 1fr; }
   .whiteboard-page { height:100vh; min-height:540px; margin:-20px -16px -50px; }
   .whiteboard-toolbar { top:14px; left:16px; right:16px; flex-wrap:wrap; overflow:visible; gap:6px; }
   .board-title { display:none; }
