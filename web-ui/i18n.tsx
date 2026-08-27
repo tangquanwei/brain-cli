@@ -21,7 +21,7 @@ const zh = {
   "settings.close": "关闭设置",
   "settings.kicker": "工作区配置",
   "settings.configuration": "配置项",
-  "settings.priority": "优先级：notes/.env > 工作区 .env > 进程环境 > 默认值",
+  "settings.priority": "优先级：进程环境 > notes/.env > 工作区 .env > 默认值",
   "settings.live": "实时监控",
   "settings.save": "保存设置",
   "settings.saving": "保存中…",
@@ -200,7 +200,7 @@ const en = {
   "settings.kicker": "Workspace configuration",
   "settings.configuration": "Configuration",
   "settings.priority":
-    "Priority: notes/.env > workspace .env > process > defaults",
+    "Priority: process environment > notes/.env > workspace .env > defaults",
   "settings.live": "Live monitoring",
   "settings.save": "Save settings",
   "settings.saving": "Saving…",
