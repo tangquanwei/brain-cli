@@ -17,6 +17,7 @@ export interface WhiteboardCard {
   kind?: WhiteboardCardKind;
   title: string;
   body: string;
+  collapsed?: boolean;
   color: WhiteboardColor;
   x: number;
   y: number;
@@ -136,6 +137,7 @@ function normalizeCard(
         ? card.title.slice(0, 500)
         : `Card ${index + 1}`,
     body: typeof card.body === "string" ? card.body.slice(0, 20000) : "",
+    ...(card.collapsed === true ? { collapsed: true } : {}),
     color: card.color as WhiteboardColor,
     x: Math.max(-1_000_000, Math.min(1_000_000, finiteNumber(card.x, 0))),
     y: Math.max(-1_000_000, Math.min(1_000_000, finiteNumber(card.y, 0))),

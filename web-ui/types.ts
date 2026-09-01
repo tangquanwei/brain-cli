@@ -144,6 +144,7 @@ export interface WhiteboardCard {
   kind?: WhiteboardCardKind;
   title: string;
   body: string;
+  collapsed?: boolean;
   color: WhiteboardColor;
   x: number;
   y: number;

@@ -73,4 +73,22 @@ describe("whiteboard persistence", () => {
     );
     expect(board.edges).toEqual([{ id: "one", from: "a", to: "b" }]);
   });
+
+  it("persists a card collapsed state while ignoring invalid values", () => {
+    const board = normalizeWhiteboard(
+      {
+        version: 2,
+        cards: [
+          { id: "collapsed", color: "blue", collapsed: true },
+          { id: "expanded", color: "green", collapsed: false },
+          { id: "legacy", color: "pink", collapsed: "yes" },
+        ],
+      },
+      "research-map",
+    );
+
+    expect(board.cards[0]?.collapsed).toBe(true);
+    expect(board.cards[1]).not.toHaveProperty("collapsed");
+    expect(board.cards[2]).not.toHaveProperty("collapsed");
+  });
 });

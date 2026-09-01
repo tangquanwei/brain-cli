@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { marked } from "marked";
 import { api } from "../api";
 import { navigate } from "../App";
 import { Modal } from "../components/Modal";
 import { useToast } from "../components/Toast";
+import { WhiteboardCardView } from "../components/WhiteboardCard";
+import { WhiteboardInspector } from "../components/WhiteboardInspector";
 import { useI18n } from "../i18n";
 import type {
   NoteSummary,
@@ -21,77 +22,11 @@ type CardColor = WhiteboardCard["color"];
 
 type Point = { x: number; y: number };
 const LEGACY_STORAGE_KEY = "brain-whiteboard-v1";
+const BACKGROUND_DOTS_STORAGE_KEY = "brain-whiteboard-background-dots";
 const COLORS: CardColor[] = ["blue", "yellow", "green", "pink"];
 const CARD_WIDTH = 208;
 const CARD_HEIGHT = 152;
-
-const escapeHtml = (value: string): string =>
-  value.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        char
-      ] ?? char,
-  );
-
-function renderFormula(source: string): string {
-  let formula = escapeHtml(source.trim());
-  const greek: Record<string, string> = {
-    alpha: "α",
-    beta: "β",
-    gamma: "γ",
-    delta: "δ",
-    theta: "θ",
-    lambda: "λ",
-    mu: "μ",
-    pi: "π",
-    sigma: "σ",
-    phi: "φ",
-    omega: "ω",
-    Delta: "Δ",
-    Sigma: "Σ",
-    Omega: "Ω",
-  };
-  formula = formula.replace(
-    /\\frac\{([^{}]+)\}\{([^{}]+)\}/g,
-    '<span class="math-frac"><span>$1</span><span>$2</span></span>',
-  );
-  formula = formula.replace(
-    /\\([A-Za-z]+)/g,
-    (_, name: string) =>
-      greek[name] ??
-      { sum: "∑", prod: "∏", infty: "∞", bar: "¯" }[name] ??
-      name,
-  );
-  formula = formula
-    .replace(/\^\{([^{}]+)\}/g, "<sup>$1</sup>")
-    .replace(/\^([A-Za-z0-9]+)/g, "<sup>$1</sup>");
-  formula = formula
-    .replace(/_\{([^{}]+)\}/g, "<sub>$1</sub>")
-    .replace(/_([A-Za-z0-9]+)/g, "<sub>$1</sub>");
-  return formula;
-}
-
-function renderCardMarkdown(source: string): string {
-  const formulas: string[] = [];
-  const withPlaceholders = source.replace(
-    /\$\$([\s\S]+?)\$\$|\$([^$\n]+)\$/g,
-    (_match, block: string | undefined, inline: string | undefined) => {
-      const index =
-        formulas.push(
-          block
-            ? `<div class="math-block">${renderFormula(block)}</div>`
-            : `<span class="math-inline">${renderFormula(inline ?? "")}</span>`,
-        ) - 1;
-      return `@@MATH_${index}@@`;
-    },
-  );
-  let html = marked.parse(withPlaceholders) as string;
-  return html.replace(
-    /@@MATH_(\d+)@@/g,
-    (_match, index: string) => formulas[Number(index)] ?? "",
-  );
-}
+const CARD_COLLAPSED_HEIGHT = 58;
 
 const seedCards = (notes: NoteSummary[], limit = 7): WhiteboardCard[] =>
   notes.slice(0, limit).map((note, index) => ({
@@ -116,23 +51,27 @@ function readLegacyCards(): WhiteboardCard[] | null {
 }
 
 function edgePath(from: WhiteboardCard, to: WhiteboardCard): string {
+  const fromHeight = from.collapsed ? CARD_COLLAPSED_HEIGHT : CARD_HEIGHT;
+  const toHeight = to.collapsed ? CARD_COLLAPSED_HEIGHT : CARD_HEIGHT;
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  // Cards that are mostly above/below each other should use top/bottom ports.
+  // The tolerance prevents a small horizontal offset from creating a diagonal side route.
+  const horizontal = Math.abs(dx) > Math.abs(dy) * 1.25;
   if (horizontal) {
     const forward = dx >= 0;
     const sx = from.x + (forward ? CARD_WIDTH : 0);
     const tx = to.x + (forward ? 0 : CARD_WIDTH);
-    const sy = from.y + CARD_HEIGHT / 2;
-    const ty = to.y + CARD_HEIGHT / 2;
+    const sy = from.y + fromHeight / 2;
+    const ty = to.y + toHeight / 2;
     const bend = Math.max(48, Math.abs(tx - sx) * 0.42);
     return `M ${sx} ${sy} C ${sx + (forward ? bend : -bend)} ${sy}, ${tx - (forward ? bend : -bend)} ${ty}, ${tx} ${ty}`;
   }
   const forward = dy >= 0;
   const sx = from.x + CARD_WIDTH / 2;
   const tx = to.x + CARD_WIDTH / 2;
-  const sy = from.y + (forward ? CARD_HEIGHT : 0);
-  const ty = to.y + (forward ? 0 : CARD_HEIGHT);
+  const sy = from.y + (forward ? fromHeight : 0);
+  const ty = to.y + (forward ? 0 : toHeight);
   const bend = Math.max(48, Math.abs(ty - sy) * 0.42);
   return `M ${sx} ${sy} C ${sx} ${sy + (forward ? bend : -bend)}, ${tx} ${ty - (forward ? bend : -bend)}, ${tx} ${ty}`;
 }
@@ -152,6 +91,13 @@ export function Whiteboard({
   const [query, setQuery] = useState("");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 24, y: 24 });
+  const [showBackgroundDots, setShowBackgroundDots] = useState(() => {
+    try {
+      return localStorage.getItem(BACKGROUND_DOTS_STORAGE_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [boards, setBoards] = useState<
@@ -164,6 +110,7 @@ export function Whiteboard({
   const [importSearching, setImportSearching] = useState(false);
   const [newBoardOpen, setNewBoardOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
+  const [boardMenuOpen, setBoardMenuOpen] = useState(false);
   const [renameBoardOpen, setRenameBoardOpen] = useState(false);
   const [renameBoardName, setRenameBoardName] = useState("");
   const [deleteBoardOpen, setDeleteBoardOpen] = useState(false);
@@ -330,6 +277,16 @@ export function Whiteboard({
       : cards;
   }, [cards, query]);
 
+  const boardOptions = boards.length
+    ? boards
+    : [
+        {
+          id: boardId,
+          title: boardTitle || t("whiteboard.mainBoard"),
+          updatedAt: "",
+        },
+      ];
+
   const point = (event: React.PointerEvent): Point => ({
     x: event.clientX,
     y: event.clientY,
@@ -373,7 +330,7 @@ export function Whiteboard({
       return;
     }
     const p = point(event);
-    if (!card && event.shiftKey === false) setMarquee(null);
+    if (!card) setMarquee(null);
     if (card && event.shiftKey) {
       setSelectedIds((current) => {
         const next = new Set(current);
@@ -403,7 +360,7 @@ export function Whiteboard({
             }),
           )
         : undefined,
-      mode: card ? undefined : event.shiftKey ? "marquee" : "pan",
+      mode: card ? undefined : event.button === 0 ? "marquee" : "pan",
       additive: event.shiftKey,
     });
     if (card) {
@@ -505,7 +462,9 @@ export function Whiteboard({
               sx < x2 &&
               sx + CARD_WIDTH * zoom > x1 &&
               sy < y2 &&
-              sy + CARD_HEIGHT * zoom > y1
+              sy +
+                (card.collapsed ? CARD_COLLAPSED_HEIGHT : CARD_HEIGHT) * zoom >
+                y1
             );
           })
           .map((card) => card.id);
@@ -580,6 +539,24 @@ export function Whiteboard({
     );
   };
 
+  const updateBackgroundDots = (show: boolean) => {
+    setShowBackgroundDots(show);
+    try {
+      localStorage.setItem(BACKGROUND_DOTS_STORAGE_KEY, show ? "1" : "0");
+    } catch {
+      // Keep the in-memory choice when browser storage is unavailable.
+    }
+  };
+
+  const toggleCardCollapsed = (cardId: string) => {
+    pushHistory();
+    setCards((current) =>
+      current.map((card) =>
+        card.id === cardId ? { ...card, collapsed: !card.collapsed } : card,
+      ),
+    );
+  };
+
   const selectedEdges = selectedId
     ? edges.filter((edge) => edge.from === selectedId || edge.to === selectedId)
     : [];
@@ -643,7 +620,12 @@ export function Whiteboard({
     const minX = Math.min(...cards.map((card) => card.x));
     const minY = Math.min(...cards.map((card) => card.y));
     const maxX = Math.max(...cards.map((card) => card.x + CARD_WIDTH));
-    const maxY = Math.max(...cards.map((card) => card.y + CARD_HEIGHT));
+    const maxY = Math.max(
+      ...cards.map(
+        (card) =>
+          card.y + (card.collapsed ? CARD_COLLAPSED_HEIGHT : CARD_HEIGHT),
+      ),
+    );
     const nextZoom = Math.max(
       0.6,
       Math.min(
@@ -767,6 +749,7 @@ export function Whiteboard({
         return;
       }
       if (event.key === "Escape") {
+        setBoardMenuOpen(false);
         setConnectingFrom(null);
         setMarquee(null);
         setDrag(null);
@@ -833,28 +816,40 @@ export function Whiteboard({
         <section className="whiteboard-stage">
           <div className="whiteboard-toolbar">
             <div className="board-title">
-              <span className="board-title-dot" />
-              <select
-                className="board-select"
-                value={boardId}
-                onChange={(event) => navigate("whiteboard", event.target.value)}
-                aria-label={t("whiteboard.boards")}
+              <button
+                className="board-new-btn"
+                type="button"
+                onClick={() => setNewBoardOpen(true)}
+                aria-label={t("whiteboard.newBoardTitle")}
+                title={t("whiteboard.newBoardTitle")}
               >
-                {(boards.length
-                  ? boards
-                  : [
-                      {
-                        id: boardId,
-                        title: t("whiteboard.mainBoard"),
-                        updatedAt: "",
-                      },
-                    ]
-                ).map((board) => (
-                  <option key={board.id} value={board.id}>
-                    {board.title}
-                  </option>
-                ))}
-              </select>
+                ＋
+              </button>
+              <span
+                className="board-name"
+                onDoubleClick={() => {
+                  setRenameBoardName(
+                    boards.find((board) => board.id === boardId)?.title ??
+                      boardTitle ??
+                      boardId,
+                  );
+                  setBoardMenuOpen(false);
+                  setRenameBoardOpen(true);
+                }}
+                title={t("whiteboard.renameBoard")}
+              >
+                {boardTitle || boardId}
+              </span>
+              <button
+                className="board-switch-toggle"
+                type="button"
+                onClick={() => setBoardMenuOpen((value) => !value)}
+                aria-label={t("whiteboard.boards")}
+                aria-expanded={boardMenuOpen}
+                title={t("whiteboard.boards")}
+              >
+                ⌄
+              </button>
               <span className="board-edge-count">
                 {edges.length} {t("whiteboard.edgeCount")}
               </span>
@@ -865,6 +860,15 @@ export function Whiteboard({
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("whiteboard.search")}
             />
+            <label className="toggle toolbar-toggle">
+              <input
+                type="checkbox"
+                checked={showBackgroundDots}
+                onChange={(event) => updateBackgroundDots(event.target.checked)}
+                aria-label={t("whiteboard.backgroundDots")}
+              />
+              <span>{t("whiteboard.backgroundDots")}</span>
+            </label>
             <button
               className="btn toolbar-action"
               onClick={() => setImportOpen(true)}
@@ -873,25 +877,6 @@ export function Whiteboard({
             </button>
             <button className="btn primary toolbar-action" onClick={addCard}>
               ＋ {t("whiteboard.addCard")}
-            </button>
-            <button
-              className="btn toolbar-action"
-              onClick={() => setNewBoardOpen(true)}
-            >
-              {t("whiteboard.newBoard")}
-            </button>
-            <button
-              className="toolbar-btn"
-              onClick={() => {
-                setRenameBoardName(
-                  boards.find((board) => board.id === boardId)?.title ??
-                    boardId,
-                );
-                setRenameBoardOpen(true);
-              }}
-              aria-label={t("whiteboard.renameBoard")}
-            >
-              ✎
             </button>
             <button
               className="toolbar-btn"
@@ -974,6 +959,29 @@ export function Whiteboard({
               {inspectorCollapsed ? "‹" : "›"}
             </button>
           </div>
+          {boardMenuOpen && (
+            <div
+              className="board-menu"
+              role="menu"
+              aria-label={t("whiteboard.boards")}
+            >
+              {boardOptions.map((board) => (
+                <button
+                  className={`board-menu-item${board.id === boardId ? " active" : ""}`}
+                  key={board.id}
+                  type="button"
+                  role="menuitem"
+                  aria-current={board.id === boardId ? "page" : undefined}
+                  onClick={() => {
+                    setBoardMenuOpen(false);
+                    if (board.id !== boardId) navigate("whiteboard", board.id);
+                  }}
+                >
+                  {board.title}
+                </button>
+              ))}
+            </div>
+          )}
           {importOpen && (
             <div
               className="whiteboard-import-panel"
@@ -1107,14 +1115,16 @@ export function Whiteboard({
             </Modal>
           )}
           <div
-            className="whiteboard-canvas"
+            className={`whiteboard-canvas${showBackgroundDots ? "" : " no-background-dots"}`}
             ref={canvasRef}
             onPointerDown={(event) => {
               if (event.target === event.currentTarget) {
-                setEditingId(null);
-                setSelectedId(null);
-                setSelectedIds(new Set());
-                setConnectingFrom(null);
+                if (event.button === 0) {
+                  setEditingId(null);
+                  setSelectedId(null);
+                  setSelectedIds(new Set());
+                  setConnectingFrom(null);
+                }
                 onPointerDown(event);
               }
             }}
@@ -1135,18 +1145,6 @@ export function Whiteboard({
                 height="2000"
                 aria-hidden="true"
               >
-                <defs>
-                  <marker
-                    id="board-arrow"
-                    markerWidth="8"
-                    markerHeight="8"
-                    refX="7"
-                    refY="4"
-                    orient="auto"
-                  >
-                    <path d="M0,0 L8,4 L0,8 Z" />
-                  </marker>
-                </defs>
                 {edges
                   .filter(
                     (edge) =>
@@ -1163,71 +1161,21 @@ export function Whiteboard({
                         className={`board-link${selectedId ? (focused ? " focused" : " dimmed") : ""}`}
                         key={edge.id}
                         d={edgePath(from, to)}
-                        markerEnd="url(#board-arrow)"
                       />
                     );
                   })}
               </svg>
               {visibleCards.map((card) => (
-                <article
-                  className={`board-card ${card.color}${selectedIds.has(card.id) ? " selected" : ""}${editingId === card.id ? " editing" : ""}`}
+                <WhiteboardCardView
                   key={card.id}
-                  style={{ left: card.x, top: card.y }}
-                  onPointerDown={(event) => onPointerDown(event, card)}
+                  card={card}
+                  selected={selectedIds.has(card.id)}
+                  editing={editingId === card.id}
+                  onPointerDown={onPointerDown}
                   onWheel={(event) => event.stopPropagation()}
-                >
-                  <div className="card-pin" />
-                  {editingId === card.id ? (
-                    <>
-                      <input
-                        className="board-card-title-input"
-                        value={card.title}
-                        placeholder={t("whiteboard.untitled")}
-                        autoFocus
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onChange={(event) =>
-                          updateSelected({ title: event.target.value })
-                        }
-                      />
-                      <textarea
-                        className="board-card-body-input"
-                        value={card.body}
-                        placeholder={t("whiteboard.emptyCard")}
-                        rows={5}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onChange={(event) =>
-                          updateSelected({ body: event.target.value })
-                        }
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <h3>{card.title || t("whiteboard.untitled")}</h3>
-                      {card.body ? (
-                        <div
-                          className="board-card-rendered md"
-                          dangerouslySetInnerHTML={{
-                            __html: renderCardMarkdown(card.body),
-                          }}
-                        />
-                      ) : (
-                        <p>{t("whiteboard.emptyCard")}</p>
-                      )}
-                    </>
-                  )}
-                  {card.sourceId && (
-                    <button
-                      className="card-source"
-                      onPointerDown={(event) => event.stopPropagation()}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        navigate("notes", card.sourceId);
-                      }}
-                    >
-                      ↗ {card.sourceId}
-                    </button>
-                  )}
-                </article>
+                  onToggleCollapsed={toggleCardCollapsed}
+                  onUpdate={updateSelected}
+                />
               ))}
               {!loading && visibleCards.length === 0 && (
                 <div className="board-empty">{t("whiteboard.emptyBoard")}</div>
@@ -1255,127 +1203,22 @@ export function Whiteboard({
           </div>
         </section>
 
-        <aside
-          className={`whiteboard-inspector${selected ? " open" : ""}${inspectorCollapsed ? " collapsed" : ""}`}
-        >
-          <div className="inspector-content">
-            {selected ? (
-              <>
-                <div className="inspector-head">
-                  <span>{t("whiteboard.editCard")}</span>
-                  <button
-                    className="icon-btn"
-                    onClick={() => setSelectedId(null)}
-                    aria-label={t("whiteboard.close")}
-                  >
-                    ×
-                  </button>
-                </div>
-                <label className="inspector-label">
-                  {t("whiteboard.title")}
-                </label>
-                <input
-                  value={selected.title}
-                  onChange={(event) =>
-                    updateSelected({ title: event.target.value })
-                  }
-                />
-                <label className="inspector-label">
-                  {t("whiteboard.content")}
-                </label>
-                <textarea
-                  value={selected.body}
-                  onChange={(event) =>
-                    updateSelected({ body: event.target.value })
-                  }
-                  rows={8}
-                />
-                <label className="inspector-label">
-                  {t("whiteboard.color")}
-                </label>
-                <div className="color-picker">
-                  {COLORS.map((color) => (
-                    <button
-                      key={color}
-                      className={`color-swatch ${color}${selected.color === color ? " active" : ""}`}
-                      onClick={() => updateSelected({ color })}
-                      aria-label={color}
-                    />
-                  ))}
-                </div>
-                {selected.sourceId && (
-                  <button
-                    className="btn inspector-source"
-                    onClick={() => navigate("notes", selected.sourceId)}
-                  >
-                    {t("whiteboard.openNote")}
-                  </button>
-                )}
-                <button
-                  className={`btn inspector-source${connectingFrom === selected.id ? " primary" : ""}`}
-                  onClick={() =>
-                    setConnectingFrom(
-                      connectingFrom === selected.id ? null : selected.id,
-                    )
-                  }
-                >
-                  {connectingFrom === selected.id
-                    ? t("whiteboard.cancelConnect")
-                    : t("whiteboard.connect")}
-                </button>
-                {connectingFrom === selected.id && (
-                  <p className="connect-hint">{t("whiteboard.connecting")}</p>
-                )}
-                <div className="connection-section">
-                  <div className="inspector-label">
-                    {t("whiteboard.connections")}
-                  </div>
-                  {selectedEdges.length === 0 ? (
-                    <div className="connection-empty">
-                      {t("whiteboard.noConnections")}
-                    </div>
-                  ) : (
-                    selectedEdges.map((edge) => {
-                      const outgoing = edge.from === selected.id;
-                      const other = cardById.get(
-                        outgoing ? edge.to : edge.from,
-                      );
-                      return (
-                        <div className="connection-row" key={edge.id}>
-                          <span className="connection-direction">
-                            {outgoing ? "→" : "←"}
-                          </span>
-                          <span className="connection-name">
-                            {other?.title || t("whiteboard.untitled")}
-                          </span>
-                          <button
-                            className="connection-remove"
-                            onClick={() => removeEdge(edge.id)}
-                            aria-label={t("whiteboard.removeConnection")}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                <button
-                  className="btn danger inspector-delete"
-                  onClick={deleteSelected}
-                >
-                  {t("whiteboard.delete")}
-                </button>
-              </>
-            ) : (
-              <div className="inspector-empty">
-                <div className="inspector-icon">✦</div>
-                <strong>{t("whiteboard.selectCard")}</strong>
-                <p>{t("whiteboard.selectHint")}</p>
-              </div>
-            )}
-          </div>
-        </aside>
+        <WhiteboardInspector
+          selected={selected}
+          selectedEdges={selectedEdges}
+          cardById={cardById}
+          inspectorCollapsed={inspectorCollapsed}
+          connectingFrom={connectingFrom}
+          onClose={() => setSelectedId(null)}
+          onUpdate={updateSelected}
+          onToggleConnect={() =>
+            setConnectingFrom(
+              connectingFrom === selected?.id ? null : (selected?.id ?? null),
+            )
+          }
+          onRemoveEdge={removeEdge}
+          onDelete={deleteSelected}
+        />
       </div>
     </div>
   );
