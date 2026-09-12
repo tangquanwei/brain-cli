@@ -11,6 +11,29 @@ import {
 export type Language = "zh" | "en";
 
 const zh = {
+  "drawing.notes": "笔记引用",
+  "drawing.search": "搜索笔记并添加到画布",
+  "drawing.noResults": "没有匹配的笔记",
+  "drawing.saved": "已保存到本地",
+  "drawing.saving": "保存中…",
+  "drawing.pending": "等待保存…",
+  "drawing.error": "未保存",
+  "drawing.export": "导出白板",
+  "drawing.retry": "重试保存",
+  "drawing.reload": "重新加载",
+  "drawing.close": "关闭笔记侧栏",
+  "drawing.vscode": "在 VS Code 编辑",
+  "drawing.openNote": "打开笔记",
+  "drawing.hint": "搜索笔记添加引用，或选择画布中的引用查看正文。",
+  "drawing.missing":
+    "笔记不存在或无法读取，可能已被移动。原引用仍保留在画布中。",
+  "drawing.conflict":
+    "白板文件已被其他窗口修改。请先导出当前内容，再重新加载。",
+  "drawing.confirmReload":
+    "重新加载会丢弃当前未保存的画布修改。请先导出需要保留的内容。",
+  "drawing.confirm": "确定",
+  "drawing.unsaved": "白板尚未保存，请处理保存错误后再切换。",
+
   "language.label": "界面语言",
   "language.zh": "中文",
   "language.en": "English",
@@ -86,6 +109,13 @@ const zh = {
   "dashboard.runBackup": "运行 brain backup 提交",
   "dashboard.clean": "notes 工作区干净",
   "dashboard.recent": "最近笔记",
+  "settings.blogDir": "Hexo Blog 目录（BLOG_DIR）",
+  "notes.publish": "发布到 Blog",
+  "notes.publishing": "发布中…",
+  "notes.publishHint": "将文章和本地附件写入 Blog；线上部署沿用现有流程",
+  "notes.publishSuccess":
+    "已写入 Blog：{path}（{count} 个附件）。尚未部署上线。",
+  "notes.publishLinks": "{count} 处内部笔记引用已保留为文字。",
   "notes.nameRequired": "名称不能为空",
   "notes.renameSuccess": "✅ 已重命名，更新 {count} 处链接",
   "notes.renameTitle": "✏️ 重命名笔记",
@@ -160,6 +190,9 @@ const zh = {
   "whiteboard.edgeCount": "条连接",
   "whiteboard.tools": "工具",
   "whiteboard.newCard": "未命名卡片",
+  "whiteboard.cardType": "卡片类型",
+  "whiteboard.cardTypeCard": "卡片",
+  "whiteboard.cardTypeText": "文本框",
   "whiteboard.center": "回到中心",
   "whiteboard.reset": "重置白板",
   "whiteboard.tip": "把想法放在一起，拖动卡片建立你的思考路径。",
@@ -213,6 +246,30 @@ const zh = {
 export type TranslationKey = keyof typeof zh;
 
 const en = {
+  "drawing.notes": "Note references",
+  "drawing.search": "Search notes to add to canvas",
+  "drawing.noResults": "No matching notes",
+  "drawing.saved": "Saved locally",
+  "drawing.saving": "Saving\u2026",
+  "drawing.pending": "Unsaved changes",
+  "drawing.error": "Not saved",
+  "drawing.export": "Export drawing",
+  "drawing.retry": "Retry save",
+  "drawing.reload": "Reload from disk",
+  "drawing.close": "Close notes panel",
+  "drawing.vscode": "Edit in VS Code",
+  "drawing.openNote": "Open note",
+  "drawing.hint":
+    "Search to add a note reference, or select one on the canvas to preview it.",
+  "drawing.missing":
+    "This note is missing or cannot be read. It may have moved; the reference is retained.",
+  "drawing.conflict":
+    "Another window changed this drawing. Export your changes before reloading.",
+  "drawing.confirmReload":
+    "Reloading discards unsaved canvas changes. Export anything you need to keep first.",
+  "drawing.confirm": "Confirm",
+  "drawing.unsaved": "Resolve unsaved changes before switching drawings.",
+
   "language.label": "Interface language",
   "language.zh": "中文",
   "language.en": "English",
@@ -289,6 +346,14 @@ const en = {
   "dashboard.runBackup": "Run brain backup to commit",
   "dashboard.clean": "notes working tree is clean",
   "dashboard.recent": "Recent notes",
+  "settings.blogDir": "Hexo Blog directory (BLOG_DIR)",
+  "notes.publish": "Publish to Blog",
+  "notes.publishing": "Publishing…",
+  "notes.publishHint":
+    "Write this article and local attachments to Blog; deploy using your existing workflow",
+  "notes.publishSuccess":
+    "Written to Blog: {path} ({count} attachments). Not deployed online yet.",
+  "notes.publishLinks": "{count} internal note references were kept as text.",
   "notes.nameRequired": "A name is required",
   "notes.renameSuccess": "✅ Renamed and updated {count} links",
   "notes.renameTitle": "✏️ Rename note",
@@ -367,6 +432,9 @@ const en = {
   "whiteboard.edgeCount": "links",
   "whiteboard.tools": "Tools",
   "whiteboard.newCard": "Untitled card",
+  "whiteboard.cardType": "Card type",
+  "whiteboard.cardTypeCard": "Card",
+  "whiteboard.cardTypeText": "Text box",
   "whiteboard.center": "Center view",
   "whiteboard.reset": "Reset board",
   "whiteboard.tip":

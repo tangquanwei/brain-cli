@@ -8,6 +8,8 @@ const CLI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 export const ENV_KEYS = [
   "NOTES_DIR",
+  "BLOG_DIR",
+  "NOTION_TOKEN",
   "GIT_AUTO_COMMIT",
   "WATCH_ENABLED",
   "PUSH_INTERVAL",
@@ -20,6 +22,8 @@ type EnvSource = "notes" | "home" | "process" | "default";
 
 const DEFAULT_ENV: Record<EnvKey, string> = {
   NOTES_DIR: "notes",
+  BLOG_DIR: "blog",
+  NOTION_TOKEN: "",
   GIT_AUTO_COMMIT: "true",
   WATCH_ENABLED: "true",
   PUSH_INTERVAL: "900",
@@ -100,6 +104,8 @@ function parseNonNegativeInt(
 
 export interface Settings {
   notesDir: string;
+  blogDir: string;
+  notionToken: string;
   gitAutoCommit: boolean;
   commitInterval: number;
   pushInterval: number;
@@ -108,6 +114,8 @@ export interface Settings {
 
 export const settings: Settings = {
   notesDir: resolve(REPO_ROOT, DEFAULT_ENV.NOTES_DIR),
+  blogDir: resolve(REPO_ROOT, DEFAULT_ENV.BLOG_DIR),
+  notionToken: "",
   gitAutoCommit: true,
   commitInterval: 30,
   pushInterval: 900,
@@ -118,6 +126,11 @@ export function reloadSettings(): Settings {
   const context = envContext();
   const values = context.values;
   settings.notesDir = explicitVault ?? resolve(REPO_ROOT, values.NOTES_DIR);
+  settings.blogDir = resolve(
+    REPO_ROOT,
+    values.BLOG_DIR || DEFAULT_ENV.BLOG_DIR,
+  );
+  settings.notionToken = values.NOTION_TOKEN;
   settings.gitAutoCommit = parseBool(
     values.GIT_AUTO_COMMIT,
     DEFAULT_ENV.GIT_AUTO_COMMIT === "true",
@@ -150,6 +163,7 @@ export function readSettingsSnapshot(): SettingsSnapshot {
   const context = envContext();
   const values = { ...context.values };
   if (explicitVault) values.NOTES_DIR = settings.notesDir;
+  if (values.NOTION_TOKEN) values.NOTION_TOKEN = "********";
   return {
     values,
     sources: context.sources,

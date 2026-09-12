@@ -103,6 +103,14 @@ export function Settings({ dataVersion }: { dataVersion: number }) {
               />
               <small>{sourceLabel("NOTES_DIR")}</small>
             </label>
+            <label className="settings-field">
+              <span>{t("settings.blogDir")}</span>
+              <input
+                value={values.BLOG_DIR}
+                onChange={(event) => update("BLOG_DIR", event.target.value)}
+              />
+              <small>{sourceLabel("BLOG_DIR")}</small>
+            </label>
             <div className="settings-field">
               <span>{t("language.label")}</span>
               <div

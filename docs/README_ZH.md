@@ -135,6 +135,7 @@ WebUI 把本地文件组织成专注的维护工作区，同时始终以文件�
 | `brain status` | 查看知识库和 Git 状态 | 否 |
 | `brain init` | 创建默认工作区和 PARA 目录 | 是 |
 | `brain capture <title>` | 创建带 frontmatter 的 Markdown 笔记 | 是 |
+| `brain download <url>` | 将 Notion 页面同步到 `resources` | 是 |
 | `brain links --stats --orphans` | 检查链接和孤岛笔记 | 否 |
 | `brain backlinks <note>` | 列出链接到指定笔记的笔记 | 否 |
 | `brain rename <old> <new> --dry-run` | 预览安全重命名和链接更新 | 否 |
@@ -174,11 +175,12 @@ node dist/cli.js --vault "$PWD/examples/demo-vault/notes" web --open
 
 ## 配置
 
-临时选择知识库时使用 `--vault <path>`；需要持久默认值时，根据 [`.env.example`](../.env.example) 创建工作区级 `.env`。解析优先级依次为 `--vault`、`NOTES_DIR`、默认的 `notes`。
+临时选择知识库时使用 `--vault <path>`；需要持久默认值时，根据 [`.env.example`](../.env.example) 创建工作区级 `.env`。解析优先级依次为 `--vault`、`NOTES_DIR`、默认的 `notes`。Notion 同步需要额外配置 `NOTION_TOKEN`，并把目标页面共享给对应 integration。
 
 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `NOTES_DIR` | `notes` | Markdown 知识库路径，可相对工作区或使用绝对路径 |
+| `NOTION_TOKEN` | 空 | Notion integration token，用于 `brain download` |
 | `GIT_AUTO_COMMIT` | `true` | 支持的写操作完成后自动提交 |
 | `COMMIT_INTERVAL` | `30` | Watcher 自动提交间隔，单位为秒 |
 | `PUSH_INTERVAL` | `900` | Watcher 自动推送间隔，单位为秒 |
@@ -218,3 +220,7 @@ npm run build
 [开始使用](#60-秒快速开始) · [提交 Issue](https://github.com/tangquanwei/brain-cli/issues) · [Apache-2.0](../LICENSE)
 
 </div>
+
+## Notes 发布到 Blog
+
+在 Notes 阅读器点击“发布到 Blog”，可将当前文章及本地附件写入 Hexo Blog。在设置中配置 `BLOG_DIR`，默认 `blog`。重复发布更新同一篇；线上部署沿用原有流程。详见 [发布说明](blog-publishing.md)。

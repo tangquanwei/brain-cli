@@ -78,6 +78,22 @@ brain --vault /absolute/path/to/your/notes web --open
 
 > **A safe first step:** `doctor` and link scans are read-only. Use `--dry-run` before renaming or moving notes.
 
+### Sync a Notion page
+
+Create a Notion integration, share the target page with it, and set its secret in `.env`:
+
+```dotenv
+NOTION_TOKEN=secret_xxx
+```
+
+Then run:
+
+```bash
+brain download "https://app.notion.com/p/qwtang/TLDR-3b178eafd44e8025b0b1cd05d4fb4581"
+```
+
+The page is written to `resources/<title>.md`; images and files go to the matching `.assets/` directory. Re-running the command updates the file identified by its `notion_page_id` frontmatter. Use `--token` for a one-off token or `--output resources/custom-name.md` for a custom path. Failed API or media requests do not replace an existing note.
+
 ## A visual workspace for plain Markdown
 
 The WebUI turns your local files into a focused maintenance workspace while keeping the filesystem as the source of truth.
@@ -135,6 +151,7 @@ The WebUI turns your local files into a focused maintenance workspace while keep
 | `brain status` | Show vault and Git status | No |
 | `brain init` | Create the default workspace and PARA directories | Yes |
 | `brain capture <title>` | Create a Markdown note with frontmatter | Yes |
+| `brain download <url>` | Sync a Notion page into `resources` | Yes |
 | `brain links --stats --orphans` | Inspect links and orphan notes | No |
 | `brain backlinks <note>` | List notes linking to a note | No |
 | `brain rename <old> <new> --dry-run` | Preview a safe rename and link updates | No |
@@ -179,6 +196,7 @@ Use `--vault <path>` for one-off vault selection. For a persistent default, crea
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `NOTES_DIR` | `notes` | Markdown vault path, relative to the workspace or absolute |
+| `NOTION_TOKEN` | empty | Notion integration token used by `brain download` |
 | `GIT_AUTO_COMMIT` | `true` | Automatically commit after supported write operations |
 | `COMMIT_INTERVAL` | `30` | Watcher commit interval in seconds |
 | `PUSH_INTERVAL` | `900` | Watcher push interval in seconds |
@@ -218,3 +236,7 @@ Built for people who want the convenience of a knowledge tool and the durability
 [Get started](#start-in-60-seconds) · [Open an issue](https://github.com/tangquanwei/brain-cli/issues) · [Apache-2.0](LICENSE)
 
 </div>
+
+### Publish a note to your Hexo Blog
+
+Click **Publish to Blog** in the Notes reader to write the article and local attachments to your Hexo blog. Set `BLOG_DIR` in Settings (default: `blog`). Repeating the action updates the same article; online deployment remains a separate step. See [publishing details](docs/blog-publishing.md).

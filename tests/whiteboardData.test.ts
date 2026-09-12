@@ -91,4 +91,24 @@ describe("whiteboard persistence", () => {
     expect(board.cards[1]).not.toHaveProperty("collapsed");
     expect(board.cards[2]).not.toHaveProperty("collapsed");
   });
+
+  it("preserves card and text box types while normalizing legacy types", () => {
+    const board = normalizeWhiteboard(
+      {
+        version: 2,
+        cards: [
+          { id: "card", color: "blue", kind: "card" },
+          { id: "text", color: "green", kind: "text" },
+          { id: "legacy", color: "pink", kind: "task" },
+        ],
+      },
+      "research-map",
+    );
+
+    expect(board.cards.map((card) => card.kind)).toEqual([
+      "card",
+      "text",
+      "card",
+    ]);
+  });
 });

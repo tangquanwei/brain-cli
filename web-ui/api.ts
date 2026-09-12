@@ -1,3 +1,4 @@
+import type { DrawingDocument, DrawingScene } from "../src/web/drawingData";
 import type {
   BacklinkEdge,
   DashboardData,
@@ -8,7 +9,6 @@ import type {
   NoteSummary,
   ReviewNote,
   TreeFolderNode,
-  WhiteboardDocument,
   WhiteboardSummary,
   SettingsSnapshot,
 } from "./types";
@@ -44,6 +44,11 @@ export const api = {
   links: () => request<LinksData>("/api/links"),
   graph: () => request<GraphViewData>("/api/graph"),
   open: (id: string) => post<{ ok: boolean }>("/api/open", { id }),
+  publish: (id: string) =>
+    post<{ path: string; updated: boolean; assets: number; noteLinks: number }>(
+      "/api/publish",
+      { id },
+    ),
   capture: (body: {
     title: string;
     type: string;
@@ -55,25 +60,25 @@ export const api = {
   move: (id: string, newPath: string) =>
     post<MoveResult>("/api/move", { id, newPath }),
   whiteboard: (id = "research-map") =>
-    request<WhiteboardDocument>(`/api/whiteboard?id=${encodeURIComponent(id)}`),
+    request<DrawingDocument>(`/api/whiteboard?id=${encodeURIComponent(id)}`),
   whiteboards: () => request<WhiteboardSummary[]>("/api/whiteboards"),
-  saveWhiteboard: (id: string, board: WhiteboardDocument) =>
-    request<WhiteboardDocument>("/api/whiteboard", {
+  saveWhiteboard: (
+    id: string,
+    scene: DrawingScene,
+    title: string,
+    revision: string | null,
+  ) =>
+    request<DrawingDocument>("/api/whiteboard", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id, board }),
+      body: JSON.stringify({ id, scene, title, revision }),
     }),
   whiteboardAction: (body: {
-    action: "create" | "rename" | "copy" | "delete";
+    action: "create" | "delete";
     id?: string;
-    sourceId?: string;
     title?: string;
-  }) =>
-    request<WhiteboardDocument | { ok: boolean }>("/api/whiteboards", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }),
+    revision?: string | null;
+  }) => post<DrawingDocument | { ok: boolean }>("/api/whiteboards", body),
   settings: () => request<SettingsSnapshot>("/api/settings"),
   saveSettings: (values: Partial<SettingsSnapshot["values"]>) =>
     request<SettingsSnapshot>("/api/settings", {

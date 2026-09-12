@@ -23,9 +23,16 @@ describe("safe note opening", () => {
     expect(resolveSafeNote("areas/missing.md", nodes)).toBeUndefined();
   });
 
-  it("passes the path as one launcher argument", () => {
+  it("passes the path as one launcher argument", async () => {
     const launcher = vi.fn();
-    expect(openSafeNote("areas/A B.md", nodes, launcher)).toBe(true);
+    expect(await openSafeNote("areas/A B.md", nodes, launcher)).toBe(true);
     expect(launcher).toHaveBeenCalledWith("/vault/notes/areas/A B.md");
+  });
+  it("reports launcher failures instead of claiming the note opened", async () => {
+    await expect(
+      openSafeNote("areas/A B.md", nodes, async () => {
+        throw new Error("no-code");
+      }),
+    ).rejects.toThrow("no-code");
   });
 });

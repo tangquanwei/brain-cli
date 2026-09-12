@@ -6,6 +6,8 @@ export function renderWebPage(): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>2ndBrain</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23007aff'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial,sans-serif' font-size='30' font-weight='700' fill='white'%3E2B%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/app.css">
+<script>window.EXCALIDRAW_ASSET_PATH = "/assets/excalidraw/";</script>
 <style>
 :root {
   --bg:#f5f5f7; --card:#ffffff; --sidebar:rgba(255,255,255,.72);
@@ -309,6 +311,15 @@ label.toggle { display:flex; gap:5px; align-items:center; color:var(--secondary)
 .card-collapse-toggle:hover::before,.card-collapse-toggle:focus-visible::before { opacity:.9; transform:scale(1.2); }
 .card-collapse-toggle:focus-visible { background:rgba(0,0,0,.08); outline:none; }
 .board-card h3 { margin:0 0 8px; font-size:15px; line-height:1.3; letter-spacing:0; overflow-wrap:anywhere; }
+.board-card.card-kind-text { display:flex; flex-direction:column; justify-content:center; background:transparent; border-color:transparent; box-shadow:none; text-align:center; }
+.board-card.card-kind-text.collapsed { height:152px; min-height:152px; overflow:visible; }
+.board-card.card-kind-text:hover { box-shadow:none; transform:none; }
+.board-card.card-kind-text.selected { outline:1px solid var(--accent); outline-offset:3px; }
+.board-card.card-kind-text h3 { margin:0 0 8px; text-align:center; }
+.board-card.card-kind-text .board-card-rendered { min-height:0; max-height:none; text-align:center; }
+.board-card.card-kind-text .board-card-rendered p { text-align:center; }
+.board-card.card-kind-text .board-card-title-input,.board-card.card-kind-text .board-card-body-input { text-align:center; }
+.board-card.card-kind-text .board-card-body-input { min-height:54px; }
 .board-card.collapsed h3 { margin:0; padding-right:24px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .board-card p { margin:0; font-size:12px; line-height:1.55; opacity:.78; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-wrap; }
 .board-card-title-input,.board-card-body-input { display:block; width:100%; box-sizing:border-box; border:0; border-radius:0; background:transparent; color:inherit; font:inherit; outline:none; box-shadow:none; scrollbar-width:none; -ms-overflow-style:none; }
@@ -346,6 +357,8 @@ label.toggle { display:flex; gap:5px; align-items:center; color:var(--secondary)
 .color-swatch { width:24px; height:24px; border-radius:50%; border:2px solid transparent; cursor:pointer; }
 .color-swatch.active { border-color:var(--text); box-shadow:0 0 0 2px var(--card),0 0 0 3px var(--text); }
 .color-swatch.blue { background:#007aff; } .color-swatch.yellow { background:#ffcc00; } .color-swatch.green { background:#34c759; } .color-swatch.pink { background:#ff2d55; }
+.card-type-select { width:100%; }
+.card-type-toolbar-select { width:112px; flex:none; height:32px; }
 .inspector-source { width:100%; margin-bottom:8px; }
 .connect-hint { margin:4px 0 10px; color:var(--accent); font-size:11px; line-height:1.5; }
 .connection-section { margin-top:14px; }
@@ -409,11 +422,34 @@ label.toggle { display:flex; gap:5px; align-items:center; color:var(--secondary)
   .side { display:none; }
   .main { padding:20px 16px 50px; }
 }
+
+.drawing-page { position:relative; display:flex; flex-direction:column; height:100vh; margin:-28px -34px -60px; overflow:hidden; }
+.drawing-toolbar { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line-soft); background:var(--card); flex:none; overflow-x:auto; }
+.drawing-toolbar select { max-width:220px; min-width:100px; padding:6px; background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:6px; }
+.drawing-toolbar .btn { white-space:nowrap; }
+.drawing-save { margin-left:auto; white-space:nowrap; color:var(--secondary); font-size:12px; }
+.drawing-content { display:flex; flex:1; min-height:0; min-width:0; }
+.drawing-canvas { flex:1; min-width:0; position:relative; }
+.drawing-notes { width:340px; flex:none; border-left:1px solid var(--line-soft); padding:14px; background:var(--card); display:flex; flex-direction:column; gap:10px; min-height:0; }
+.drawing-notes-head { display:flex; align-items:center; justify-content:space-between; }
+.drawing-notes input { width:100%; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+.drawing-note-list { max-height:180px; flex-shrink:0; overflow:auto; }
+.drawing-note-list button { display:block; width:100%; border:0; border-radius:6px; background:transparent; color:var(--text); padding:8px; text-align:left; cursor:pointer; }
+.drawing-note-list button:hover { background:var(--hover); }
+.drawing-note-list small { display:block; color:var(--secondary); overflow-wrap:anywhere; }
+.drawing-preview { flex:1; min-height:0; overflow:auto; border-top:1px solid var(--line-soft); padding-top:12px; overflow-wrap:anywhere; }
+.drawing-preview h2 { font-size:18px; margin:14px 0; }
+.drawing-preview .md img { max-width:100%; }
+.drawing-note-path { color:var(--secondary); font-size:12px; margin-bottom:10px; }
+.drawing-note-actions { display:flex; flex-wrap:wrap; gap:6px; }
+.drawing-error { display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--card); color:var(--danger); border-bottom:1px solid var(--line); }
+@media(max-width:900px) { .drawing-page { margin:-20px -16px -50px; } .drawing-notes { width:300px; } }
+@media(max-width:600px) { .drawing-notes { position:absolute; right:0; top:60px; bottom:0; z-index:10; width:min(340px,90vw); box-shadow:var(--shadow); } }
 </style>
 </head>
 <body>
 <div id="root"></div>
-<script src="/app.js" defer></script>
+<script type="module" src="/assets/app.js"></script>
 </body>
 </html>`;
 }

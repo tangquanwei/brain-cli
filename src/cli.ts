@@ -21,6 +21,7 @@ import { runLinks } from "./commands/links.js";
 import { runBacklinks } from "./commands/backlinks.js";
 import { runMove } from "./commands/move.js";
 import { runDoctor } from "./commands/doctor.js";
+import { commandDownload } from "./commands/download.js";
 import { configureVault } from "./config.js";
 import { panel, c, log } from "./utils/ui.js";
 
@@ -100,6 +101,15 @@ program
       await runCapture({ title, content: opts.content, tags, type });
     },
   );
+
+program
+  .command("download <url>")
+  .description("[写入] 将 Notion 页面同步为 resources Markdown 笔记")
+  .option("--token <token>", "Notion integration token（优先于 NOTION_TOKEN）")
+  .option("--output <path>", "知识库内的自定义 Markdown 输出路径")
+  .action(async (url: string, opts: { token?: string; output?: string }) => {
+    await commandDownload(url, opts);
+  });
 
 program
   .command("backup")

@@ -131,6 +131,8 @@ function Reader({
   const toast = useToast();
   const { t } = useI18n();
   const [note, setNote] = useState<NoteContent | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState("");
   const [backlinks, setBacklinks] = useState<BacklinkEdge[]>([]);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<"rename" | "move" | null>(null);
@@ -141,6 +143,25 @@ function Reader({
     api.note(id).then(setNote, (e) => setError((e as Error).message));
     api.backlinks(id).then(setBacklinks, () => setBacklinks([]));
   }, [id, dataVersion]);
+
+  const publish = async () => {
+    if (publishing) return;
+    setPublishing(true);
+    setPublishResult("");
+    try {
+      const result = await api.publish(id);
+      setPublishResult(
+        t("notes.publishSuccess", { path: result.path, count: result.assets }) +
+          (result.noteLinks
+            ? " " + t("notes.publishLinks", { count: result.noteLinks })
+            : ""),
+      );
+    } catch (error) {
+      setPublishResult((error as Error).message);
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   const html = useMemo(
     () => (note ? (marked.parse(note.content) as string) : ""),
@@ -181,6 +202,14 @@ function Reader({
         </div>
         <div className="btn-row">
           <button
+            className="btn primary"
+            disabled={publishing}
+            onClick={publish}
+            title={t("notes.publishHint")}
+          >
+            {publishing ? t("notes.publishing") : t("notes.publish")}
+          </button>
+          <button
             className="btn"
             onClick={() =>
               api
@@ -200,6 +229,11 @@ function Reader({
         </div>
       </div>
       <div className="reader-body">
+        {publishResult && (
+          <p role="status" style={{ overflowWrap: "anywhere" }}>
+            {publishResult}
+          </p>
+        )}
         <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
         {backlinks.length > 0 && (
           <>
@@ -328,7 +362,12 @@ export function Notes({
           )}
         </div>
         {noteId ? (
-          <Reader id={noteId} dataVersion={dataVersion} onMutated={onMutated} />
+          <Reader
+            key={noteId}
+            id={noteId}
+            dataVersion={dataVersion}
+            onMutated={onMutated}
+          />
         ) : (
           <div className="reader">
             <div className="reader-empty">

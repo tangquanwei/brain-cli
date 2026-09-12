@@ -19,6 +19,7 @@ brain --vault /path/to/vault <command>
 | `brain move ... --dry-run` | 只读预览 | 无 |
 | `brain init` | 写入 | 知识库目录和工作区模板目录 |
 | `brain capture <title>` | 写入 | Markdown 笔记；启用时提交知识库 Git |
+| `brain download <url>` | 写入 | Notion 页面 Markdown 和媒体附件；启用时提交知识库 Git |
 | `brain rename ...` | 写入 | 笔记、匹配附件目录和引用链接 |
 | `brain move ...` | 写入 | 笔记、匹配附件目录和引用链接 |
 | `brain backup [--push]` | Git 写入 | 仅知识库 Git 仓库 |
@@ -67,6 +68,26 @@ brain --vault /path/to/vault capture "TypeScript 类型守卫" \
 ```
 
 `--type` 支持 `Fleeting`、`Literature`、`Permanent`、`Project`。
+
+## `download <url>`
+
+将 Notion 页面同步为本地 Markdown 笔记。需要先创建 Notion integration，将目标页面共享给它，并把 token 配置到 `NOTION_TOKEN`（也可临时使用 `--token`）。
+
+```bash
+brain download "https://app.notion.com/p/qwtang/TLDR-3b178eafd44e8025b0b1cd05d4fb4581"
+brain download "https://www.notion.so/workspace/Page-3b178eafd44e8025b0b1cd05d4fb4581" --output "resources/TLDR.md"
+```
+
+默认写入 `resources/<页面标题>.md`，并把图片和文件下载到同名 `.assets/` 目录。重复下载同一页面会依据 frontmatter 中的 `notion_page_id` 更新原文件；如果目标标题已存在但不是同一页面，命令会停止且不会覆盖。同步失败时不会写入本地文件。
+
+选项：
+
+- `--token <token>`：临时覆盖 `NOTION_TOKEN`，不建议在共享 shell 历史的环境中使用。
+- `--output <path>`：指定知识库内的 Markdown 路径；绝对路径也必须位于当前 vault 内。
+
+授权要求：integration 必须能访问该页面。遇到 `401` 或 `403` 时，检查 token 是否有效，以及页面右上角 `•••` → `Connections` 是否已添加 integration；仅能在浏览器打开的公开页面不代表 API integration 已获授权。媒体使用 Notion 返回的签名 URL 下载，不会把 token 转发给外部域名。
+
+当前不递归生成子页面文件，也不导出数据库、评论或页面历史；这些内容可能以未支持块注释保留在 Markdown 中。
 
 ## `links`
 

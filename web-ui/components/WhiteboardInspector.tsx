@@ -57,6 +57,17 @@ export function WhiteboardInspector({
               onChange={(event) => onUpdate({ body: event.target.value })}
               rows={8}
             />
+            <label className="inspector-label">{t("whiteboard.cardType")}</label>
+            <select
+              className="card-type-select"
+              value={selected.kind ?? "card"}
+              onChange={(event) =>
+                onUpdate({ kind: event.target.value as WhiteboardCard["kind"] })
+              }
+            >
+              <option value="card">{t("whiteboard.cardTypeCard")}</option>
+              <option value="text">{t("whiteboard.cardTypeText")}</option>
+            </select>
             <label className="inspector-label">{t("whiteboard.color")}</label>
             <div className="color-picker">
               {(["blue", "yellow", "green", "pink"] as const).map((color) => (

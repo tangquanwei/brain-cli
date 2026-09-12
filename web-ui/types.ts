@@ -137,7 +137,7 @@ export interface MoveResult {
 }
 
 export type WhiteboardColor = "blue" | "yellow" | "green" | "pink";
-export type WhiteboardCardKind = "note" | "text" | "block" | "attachment";
+export type WhiteboardCardKind = "card" | "text";
 
 export interface WhiteboardCard {
   id: string;
@@ -197,6 +197,7 @@ export interface WhiteboardSummary {
 
 export type EnvKey =
   | "NOTES_DIR"
+  | "BLOG_DIR"
   | "GIT_AUTO_COMMIT"
   | "WATCH_ENABLED"
   | "PUSH_INTERVAL"

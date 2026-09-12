@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
+import { lastWhiteboard } from "./whiteboardSession";
 import { Modal } from "./components/Modal";
 import { ToastProvider, useToast } from "./components/Toast";
 import { I18nProvider, useI18n, type TranslationKey } from "./i18n";
@@ -36,12 +37,23 @@ function parseHash(): Route {
       : "dashboard";
   return {
     view: key,
-    param: rest.length ? decodeURIComponent(rest.join("/")) : null,
+    param: rest.join("/")
+      ? decodeURIComponent(rest.join("/"))
+      : key === "whiteboard"
+        ? lastWhiteboard()
+        : null,
   };
 }
 
 export function navigate(view: ViewKey, param?: string): void {
-  location.hash = `#/${view}${param ? `/${encodeURIComponent(param)}` : ""}`;
+  const hash = `#/${view}${param ? `/${encodeURIComponent(param)}` : ""}`;
+  if (
+    window.dispatchEvent(
+      new CustomEvent("brain:navigate", { detail: hash, cancelable: true }),
+    )
+  ) {
+    location.hash = hash;
+  }
 }
 
 function CaptureModal({

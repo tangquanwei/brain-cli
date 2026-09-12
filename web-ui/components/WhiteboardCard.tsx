@@ -92,34 +92,36 @@ export function WhiteboardCardView({
   onUpdate,
 }: WhiteboardCardProps) {
   const { t } = useI18n();
-
+  const kind = card.kind === "text" ? "text" : "card";
   return (
     <article
-      className={`board-card ${card.color}${card.collapsed ? " collapsed" : ""}${selected ? " selected" : ""}${editing ? " editing" : ""}`}
+      className={`board-card ${card.color} card-kind-${kind}${card.collapsed ? " collapsed" : ""}${selected ? " selected" : ""}${editing ? " editing" : ""}`}
       style={{ left: card.x, top: card.y }}
       onPointerDown={(event) => onPointerDown(event, card)}
       onWheel={onWheel}
     >
-      <button
-        className="card-collapse-toggle"
-        type="button"
-        aria-label={
-          card.collapsed
-            ? t("whiteboard.expandCard")
-            : t("whiteboard.collapseCard")
-        }
-        title={
-          card.collapsed
-            ? t("whiteboard.expandCard")
-            : t("whiteboard.collapseCard")
-        }
-        aria-expanded={!card.collapsed}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggleCollapsed(card.id);
-        }}
-      />
+      {kind !== "text" && (
+        <button
+          className="card-collapse-toggle"
+          type="button"
+          aria-label={
+            card.collapsed
+              ? t("whiteboard.expandCard")
+              : t("whiteboard.collapseCard")
+          }
+          title={
+            card.collapsed
+              ? t("whiteboard.expandCard")
+              : t("whiteboard.collapseCard")
+          }
+          aria-expanded={!card.collapsed}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleCollapsed(card.id);
+          }}
+        />
+      )}
       {editing ? (
         <>
           <input
@@ -141,6 +143,20 @@ export function WhiteboardCardView({
             />
           )}
         </>
+      ) : kind === "text" ? (
+        card.title.trim() || card.body.trim() ? (
+          <>
+            {card.title.trim() && <h3>{card.title}</h3>}
+            {card.body.trim() && (
+              <div
+                className="board-card-rendered md"
+                dangerouslySetInnerHTML={{
+                  __html: renderCardMarkdown(card.body),
+                }}
+              />
+            )}
+          </>
+        ) : null
       ) : (
         <>
           <h3>{card.title || t("whiteboard.untitled")}</h3>

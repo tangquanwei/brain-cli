@@ -10,7 +10,7 @@ import {
 import { resolve } from "node:path";
 
 export type WhiteboardColor = "blue" | "yellow" | "green" | "pink";
-export type WhiteboardCardKind = "note" | "text" | "block" | "attachment";
+export type WhiteboardCardKind = "card" | "text";
 
 export interface WhiteboardCard {
   id: string;
@@ -122,14 +122,7 @@ function normalizeCard(
     id: card.id.slice(0, 120),
     ...(version >= 2
       ? {
-          kind:
-            card.kind === "note" ||
-            card.kind === "block" ||
-            card.kind === "attachment"
-              ? card.kind
-              : sourceId
-                ? "note"
-                : "text",
+          kind: card.kind === "text" ? "text" : "card",
         }
       : {}),
     title:

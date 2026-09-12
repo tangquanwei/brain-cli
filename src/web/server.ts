@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type Server, type ServerResponse } from "node:http";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import chokidar, { type FSWatcher } from "chokidar";
 import {
@@ -30,13 +30,14 @@ import { getDashboard, listNotes, readNoteContent } from "./data.js";
 import { json, openBrowser, readJsonBody } from "./http.js";
 import { renderWebPage } from "./page.js";
 import {
-  DEFAULT_WHITEBOARD_ID,
-  deleteWhiteboard,
-  emptyWhiteboard,
-  listWhiteboards,
-  readWhiteboard,
-  writeWhiteboard,
-} from "./whiteboardData.js";
+  deleteDrawing,
+  emptyScene,
+  listDrawings,
+  readDrawing,
+  writeDrawing,
+} from "./drawingData.js";
+import { publishNote } from "./blogData.js";
+import { DEFAULT_WHITEBOARD_ID } from "./whiteboardData.js";
 
 export interface WebServerOptions {
   port: number;
@@ -77,7 +78,7 @@ function findPackageRoot(): string {
 }
 
 function readAppBundle(): string | null {
-  const bundle = resolve(findPackageRoot(), "dist", "web", "app.global.js");
+  const bundle = resolve(findPackageRoot(), "dist", "web", "app.js");
   return existsSync(bundle) ? readFileSync(bundle, "utf8") : null;
 }
 
@@ -208,7 +209,7 @@ export function createWebServer(opts: WebServerOptions): Server {
       awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 },
     });
     const onFsEvent = (path: string): void => {
-      if (/\.(md|markdown|txt|json)$/i.test(path)) broadcastChange();
+      if (/\.(md|markdown|txt|json|excalidraw)$/i.test(path)) broadcastChange();
     };
     watcher.on("add", onFsEvent);
     watcher.on("change", onFsEvent);
@@ -258,6 +259,35 @@ export function createWebServer(opts: WebServerOptions): Server {
         return;
       }
 
+      if (req.method === "GET" && path.startsWith("/assets/")) {
+        const root = resolve(findPackageRoot(), "dist/web");
+        const asset = resolve(
+          root,
+          decodeURIComponent(path.slice("/assets/".length)),
+        );
+        const mime: Record<string, string> = {
+          ".css": "text/css",
+          ".js": "text/javascript",
+          ".woff2": "font/woff2",
+          ".woff": "font/woff",
+        };
+        if (
+          !asset.startsWith(root + sep) ||
+          !mime[extname(asset)] ||
+          !existsSync(asset) ||
+          !statSync(asset).isFile()
+        ) {
+          json(res, 404, { error: "not-found" });
+          return;
+        }
+        res.writeHead(200, {
+          "Content-Type": mime[extname(asset)]!,
+          "Cache-Control": "no-cache",
+        });
+        res.end(readFileSync(asset));
+        return;
+      }
+
       if (req.method === "GET" && path === "/api/events") {
         res.writeHead(200, {
           "Content-Type": "text/event-stream",
@@ -288,6 +318,9 @@ export function createWebServer(opts: WebServerOptions): Server {
         }
         const values: Partial<Record<(typeof ENV_KEYS)[number], string>> = {};
         for (const key of ENV_KEYS) {
+          // Tokens are configured through the environment/CLI and are never
+          // accepted from the settings UI or written back from its masked value.
+          if (key === "NOTION_TOKEN") continue;
           const value = (body.values as Record<string, unknown>)[key];
           if (value !== undefined) {
             if (
@@ -406,24 +439,38 @@ export function createWebServer(opts: WebServerOptions): Server {
       if (req.method === "GET" && path === "/api/whiteboard") {
         const id = url.searchParams.get("id") ?? DEFAULT_WHITEBOARD_ID;
         try {
-          const board = readWhiteboard(settings.notesDir, id);
-          json(res, 200, {
-            ...(board ?? emptyWhiteboard(id)),
-            persisted: board !== null,
-          });
+          json(res, 200, readDrawing(settings.notesDir, id));
         } catch (error) {
           json(res, 400, { error: (error as Error).message });
         }
         return;
       }
       if (req.method === "GET" && path === "/api/whiteboards") {
-        json(res, 200, listWhiteboards(settings.notesDir));
+        json(res, 200, listDrawings(settings.notesDir));
+        return;
+      }
+
+      if (req.method === "POST" && path === "/api/publish") {
+        if (req.headers.origin && req.headers.origin !== base) {
+          json(res, 403, { error: "invalid-origin" });
+          return;
+        }
+        const body = (await readJsonBody(req)) as { id?: unknown } | null;
+        if (typeof body?.id !== "string" || !body.id || body.id.length > 2000) {
+          json(res, 400, { error: "invalid-note-id" });
+          return;
+        }
+        json(
+          res,
+          200,
+          publishNote(settings.notesDir, settings.blogDir, body.id),
+        );
         return;
       }
 
       if (req.method === "POST" && path === "/api/open") {
         const body = (await readJsonBody(req)) as { id?: unknown };
-        if (!openSafeNote(body?.id, buildLinkGraph().nodes)) {
+        if (!(await openSafeNote(body?.id, buildLinkGraph().nodes))) {
           json(res, 404, { error: "unknown-note" });
           return;
         }
@@ -489,83 +536,48 @@ export function createWebServer(opts: WebServerOptions): Server {
         return;
       }
       if (req.method === "PUT" && path === "/api/whiteboard") {
-        const body = (await readJsonBody(req)) as {
+        const body = (await readJsonBody(req, 32 * 1024 * 1024)) as {
           id?: unknown;
-          board?: unknown;
+          scene?: unknown;
+          title?: unknown;
+          revision?: unknown;
         };
-        const id =
-          typeof body?.id === "string" ? body.id : DEFAULT_WHITEBOARD_ID;
-        try {
-          json(res, 200, writeWhiteboard(settings.notesDir, id, body?.board));
-        } catch (error) {
-          json(res, 400, { error: (error as Error).message });
-        }
+        if (typeof body?.id !== "string")
+          throw new Error("invalid-whiteboard-id");
+        json(
+          res,
+          200,
+          writeDrawing(
+            settings.notesDir,
+            body.id,
+            body.scene,
+            body.title,
+            body.revision,
+          ),
+        );
         return;
       }
       if (req.method === "POST" && path === "/api/whiteboards") {
         const body = (await readJsonBody(req)) as {
           action?: unknown;
           id?: unknown;
-          sourceId?: unknown;
           title?: unknown;
+          revision?: unknown;
         };
-        const action = typeof body.action === "string" ? body.action : "create";
-        const id = typeof body.id === "string" ? body.id : "";
-        if (action === "delete") {
-          deleteWhiteboard(settings.notesDir, id);
+        if (body.action === "delete" && typeof body.id === "string") {
+          deleteDrawing(settings.notesDir, body.id, body.revision);
           json(res, 200, { ok: true });
-          return;
+        } else if (body.action === "create") {
+          const id =
+            typeof body.id === "string" ? body.id : `board-${Date.now()}`;
+          json(
+            res,
+            200,
+            writeDrawing(settings.notesDir, id, emptyScene(), body.title, null),
+          );
+        } else {
+          json(res, 400, { error: "invalid-whiteboard-action" });
         }
-        if (action === "rename") {
-          const board = readWhiteboard(settings.notesDir, id);
-          if (!board) {
-            json(res, 404, { error: "unknown-whiteboard" });
-            return;
-          }
-          board.title =
-            typeof body.title === "string" && body.title.trim()
-              ? body.title.trim()
-              : board.title;
-          json(res, 200, writeWhiteboard(settings.notesDir, id, board));
-          return;
-        }
-        if (action === "copy") {
-          const sourceId =
-            typeof body.sourceId === "string" ? body.sourceId : id;
-          const source = readWhiteboard(settings.notesDir, sourceId);
-          if (!source) {
-            json(res, 404, { error: "unknown-whiteboard" });
-            return;
-          }
-          const targetId = id || `${sourceId}-copy`;
-          const copy = {
-            ...source,
-            id: targetId,
-            title:
-              typeof body.title === "string" && body.title.trim()
-                ? body.title.trim()
-                : `${source.title} copy`,
-          };
-          json(res, 200, writeWhiteboard(settings.notesDir, targetId, copy));
-          return;
-        }
-        const targetId = id || `board-${Date.now()}`;
-        if (readWhiteboard(settings.notesDir, targetId)) {
-          json(res, 409, { error: "whiteboard-exists" });
-          return;
-        }
-        json(
-          res,
-          200,
-          writeWhiteboard(settings.notesDir, targetId, {
-            ...emptyWhiteboard(targetId),
-            title:
-              typeof body.title === "string" && body.title.trim()
-                ? body.title.trim()
-                : targetId,
-            version: 2,
-          }),
-        );
         return;
       }
 
@@ -573,11 +585,13 @@ export function createWebServer(opts: WebServerOptions): Server {
     } catch (error) {
       const message = (error as Error).message;
       const status =
-        message === "request-too-large"
-          ? 413
-          : message === "invalid-json"
-            ? 400
-            : 500;
+        message === "whiteboard-conflict"
+          ? 409
+          : message === "request-too-large"
+            ? 413
+            : message.startsWith("invalid-")
+              ? 400
+              : 500;
       json(res, status, { error: message });
     }
   });

@@ -261,3 +261,9 @@
 ## 2026-05-30
 
 把notion迁移到了本地
+
+## 2026-08-28
+
+- 新增 `brain download <url>`，通过 Notion API 将页面正文、常用格式和媒体附件同步为本地 Markdown。
+- 默认写入 `resources`，记录 Notion 页面 ID 并支持重复同步更新；同步失败不会替换原文件。
+- 增加 `NOTION_TOKEN` 配置和 CLI 文档。
