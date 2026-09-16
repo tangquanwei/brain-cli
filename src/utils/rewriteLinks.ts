@@ -63,7 +63,10 @@ export function findAssetMoves(oldPath: string, newPath: string): AssetMove[] {
       old: join(oldDir, `${oldStem}.assets`),
       new: join(dirname(newPath), `${newStem}.assets`),
     },
-  ];
+  ].map(({ old, new: next }) => ({
+    old: normalizeAbsPath(old),
+    new: normalizeAbsPath(next),
+  }));
   return candidates.filter(
     ({ old }) => existsSync(old) && statSync(old).isDirectory(),
   );
