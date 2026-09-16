@@ -1,7 +1,12 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
 import { settings } from "../config.js";
-import { normalizeTags, parseFrontmatter } from "./frontmatter.js";
+import {
+  extractSummary,
+  normalizeTags,
+  parseFrontmatter,
+} from "./frontmatter.js";
+import { readFileCached } from "./noteCache.js";
 
 const IGNORE_DIRS = new Set([
   ".brain",
@@ -18,6 +23,11 @@ export interface NoteNode {
   tags: string[];
   headings: string[];
   blocks?: string[];
+  /** 从 frontmatter / 文件名解析的日期（YYYY-MM-DD）。
+   * 可选：仅手工构造的测试节点会缺省。 */
+  date?: string;
+  /** 正文摘要（前几行）。可选：仅手工构造的测试节点会缺省。 */
+  summary?: string;
 }
 
 export function toPosixPath(path: string): string {
@@ -79,9 +89,27 @@ export function markdownHeadingSlug(title: string): string {
     .replace(/\s+/g, "-");
 }
 
+/** Parse a note date from already-parsed frontmatter, falling back to a YYYY-MM-DD filename prefix. */
+export function noteDateFromData(
+  data: Record<string, unknown>,
+  fallbackName: string,
+): string {
+  const value = data.date;
+  const text =
+    value instanceof Date
+      ? value.toISOString()
+      : typeof value === "string"
+        ? value
+        : "";
+  const fromData = /^(\d{4}-\d{2}-\d{2})/.exec(text);
+  if (fromData) return fromData[1]!;
+  const fromName = /^(\d{4}-\d{2}-\d{2})/.exec(fallbackName);
+  return fromName ? fromName[1]! : "";
+}
+
 export function buildNoteIndex(notesDir = settings.notesDir): NoteNode[] {
   return scanMarkdownFiles(notesDir).map((path) => {
-    const raw = readFileSync(path, "utf8");
+    const raw = readFileCached(path);
     let parsed: ReturnType<typeof parseFrontmatter>;
     try {
       parsed = parseFrontmatter(raw);
@@ -97,6 +125,8 @@ export function buildNoteIndex(notesDir = settings.notesDir): NoteNode[] {
       tags: normalizeTags(parsed.data.tags),
       headings: extractHeadings(parsed.content),
       blocks: extractBlockIds(parsed.content),
+      date: noteDateFromData(parsed.data, basename(path, ".md")),
+      summary: extractSummary(parsed.content, 2).slice(0, 160),
     };
   });
 }

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { settings } from "../config.js";
 import {
@@ -15,6 +15,7 @@ import {
   toPosixPath,
   type NoteNode,
 } from "./noteIndex.js";
+import { readFileCached } from "./noteCache.js";
 
 export interface LinkEdge {
   from: string;
@@ -197,8 +198,11 @@ function buildAssetNameIndex(notesDir: string): Map<string, string[]> {
   return byName;
 }
 
-export function buildLinkGraph(notesDir = settings.notesDir): LinkGraph {
-  const nodes = buildNoteIndex(notesDir);
+export function buildLinkGraph(
+  notesDir = settings.notesDir,
+  providedNodes?: NoteNode[],
+): LinkGraph {
+  const nodes = providedNodes ?? buildNoteIndex(notesDir);
   const byPath = new Map(
     nodes.map((node) => [normalizeAbsPath(node.path), node]),
   );
@@ -208,7 +212,7 @@ export function buildLinkGraph(notesDir = settings.notesDir): LinkGraph {
   let assetNameIndex: Map<string, string[]> | undefined;
 
   for (const node of nodes) {
-    const raw = readFileSync(node.path, "utf8");
+    const raw = readFileCached(node.path);
     for (const link of extractMarkdownLinks(raw)) {
       if (link.kind === "anchor") {
         if (!hasReference(node, link.suffix)) {

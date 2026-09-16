@@ -15,6 +15,7 @@ export interface NoteSummary {
 export interface DashboardData {
   total: number;
   areas: AreaCount[];
+  activity: { date: string; count: number }[];
   links: {
     edges: number;
     broken: number;

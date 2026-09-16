@@ -14,6 +14,7 @@ export function renderWebPage(): string {
   --text:#1d1d1f; --secondary:#86868b; --accent:#007aff; --accent-text:#fff;
   --line:#d2d2d7; --line-soft:#e8e8ed; --hover:rgba(0,0,0,.045);
   --shadow:0 4px 24px rgba(0,0,0,.05); --danger:#ff3b30; --ok:#34c759; --warn:#ff9500;
+  --hm0:#ebedf0; --hm1:#9be9a8; --hm2:#40c463; --hm3:#30a14e; --hm4:#216e39;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -22,6 +23,7 @@ export function renderWebPage(): string {
     --text:#f5f5f7; --secondary:#98989d; --accent:#0a84ff;
     --line:#38383a; --line-soft:#2c2c2e; --hover:rgba(255,255,255,.07);
     --shadow:0 4px 24px rgba(0,0,0,.4);
+    --hm0:#2c2c2e; --hm1:#0e4429; --hm2:#006d32; --hm3:#26a641; --hm4:#39d353;
     color-scheme: dark;
   }
 }
@@ -146,6 +148,24 @@ body {
 .card .lbl { color:var(--secondary); font-size:12px; margin-top:2px; }
 .panel { background:var(--card); border-radius:14px; box-shadow:var(--shadow); padding:18px 20px; margin-bottom:18px; }
 .panel h3 { margin:0 0 12px; font-size:15px; font-weight:600; }
+
+/* ── 笔记热力图 ── */
+.heatmap-sub { font-size:12px; font-weight:400; margin-left:10px; }
+.heatmap { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+.heatmap-days { display:flex; flex-direction:column; gap:3px; margin-top:16px; width:16px; color:var(--secondary); font-size:10px; }
+.heatmap-days span { height:10px; line-height:10px; }
+.heatmap-body { min-width:0; }
+.heatmap-months { position:relative; height:13px; margin-bottom:3px; color:var(--secondary); font-size:10px; }
+.heatmap-months span { position:absolute; white-space:nowrap; }
+.heatmap-grid { display:flex; gap:3px; }
+.heatmap-week { display:flex; flex-direction:column; gap:3px; }
+.heatmap .cell, .heatmap-legend .cell { width:10px; height:10px; border-radius:2.5px; background:var(--hm0); }
+.cell.skip { visibility:hidden; }
+.cell.lv1 { background:var(--hm1); }
+.cell.lv2 { background:var(--hm2); }
+.cell.lv3 { background:var(--hm3); }
+.cell.lv4 { background:var(--hm4); }
+.heatmap-legend { display:flex; align-items:center; gap:3px; margin-top:10px; padding-right:4px; font-size:10px; justify-content:flex-end; }
 
 /* 按钮 */
 .btn {

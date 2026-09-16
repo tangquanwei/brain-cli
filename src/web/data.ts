@@ -1,13 +1,10 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { PARA_DIRS } from "../config.js";
-import {
-  extractSummary,
-  normalizeTags,
-  parseFrontmatter,
-} from "../utils/frontmatter.js";
+import { parseFrontmatter } from "../utils/frontmatter.js";
 import { buildLinkGraph } from "../utils/linkGraph.js";
-import { buildNoteIndex } from "../utils/noteIndex.js";
+import { buildNoteIndex, type NoteNode } from "../utils/noteIndex.js";
+import { readFileCached } from "../utils/noteCache.js";
 import { resolveSafeNote } from "../utils/safeOpenNote.js";
 
 export function countMdRecursive(dir: string): number {
@@ -42,6 +39,8 @@ export interface NoteSummaryItem {
 export interface DashboardData {
   total: number;
   areas: AreaCount[];
+  /** 按日期聚合的笔记/日记数量，用于仪表盘热力图 */
+  activity: { date: string; count: number }[];
   links: {
     edges: number;
     broken: number;
@@ -55,54 +54,14 @@ export interface DashboardData {
   recent: NoteSummaryItem[];
 }
 
-function parseNoteDate(raw: string, fallbackName: string): string {
-  try {
-    const { data } = parseFrontmatter(raw);
-    const value = data.date;
-    const text =
-      value instanceof Date
-        ? value.toISOString()
-        : typeof value === "string"
-          ? value
-          : "";
-    const m = /^(\d{4}-\d{2}-\d{2})/.exec(text);
-    if (m) return m[1]!;
-  } catch {
-    // fall through to filename heuristic
-  }
-  const m = /^(\d{4}-\d{2}-\d{2})/.exec(fallbackName);
-  return m ? m[1]! : "";
-}
-
-function summarizeNote(
-  notesDir: string,
-  relPath: string,
-): NoteSummaryItem | null {
-  const full = resolve(notesDir, relPath);
-  let raw: string;
-  try {
-    raw = readFileSync(full, "utf8");
-  } catch {
-    return null;
-  }
-  let data: Record<string, unknown> = {};
-  let content = raw;
-  try {
-    const parsed = parseFrontmatter(raw);
-    data = parsed.data;
-    content = parsed.content;
-  } catch {
-    // keep raw content when frontmatter is malformed
-  }
-  const title =
-    (typeof data.title === "string" && data.title.trim()) ||
-    basename(relPath, ".md");
+/** 由已解析的笔记索引节点构造摘要，避免重复读取与解析同一文件。 */
+function noteSummary(node: NoteNode): NoteSummaryItem {
   return {
-    id: relPath,
-    title,
-    date: parseNoteDate(raw, basename(relPath)),
-    tags: normalizeTags(data.tags),
-    summary: extractSummary(content, 2).slice(0, 160),
+    id: node.relPath,
+    title: node.title,
+    date: node.date ?? "",
+    tags: node.tags,
+    summary: node.summary ?? "",
   };
 }
 
@@ -135,16 +94,26 @@ export function getDashboard(notesDir: string): DashboardData {
   }
   total += rootCount;
 
-  const graph = buildLinkGraph(notesDir);
-  const recent = graph.nodes
-    .map((node) => summarizeNote(notesDir, node.relPath))
-    .filter((item): item is NoteSummaryItem => item !== null)
+  const graph = buildLinkGraph(notesDir, buildNoteIndex(notesDir));
+  const summaries = graph.nodes.map(noteSummary);
+  const recent = [...summaries]
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .slice(0, 10);
+
+  // 按日期聚合笔记数量，用于仪表盘热力图
+  const counts = new Map<string, number>();
+  for (const item of summaries) {
+    if (!item.date) continue;
+    counts.set(item.date, (counts.get(item.date) ?? 0) + 1);
+  }
+  const activity = [...counts.entries()]
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   return {
     total,
     areas,
+    activity,
     links: {
       edges: graph.edges.length,
       broken: graph.brokenLinks.length,
@@ -180,8 +149,7 @@ export function listNotes(
         : "root";
       if (top !== area) continue;
     }
-    const item = summarizeNote(notesDir, node.relPath);
-    if (!item) continue;
+    const item = noteSummary(node);
     if (tag && !item.tags.some((t) => t.toLowerCase().includes(tag))) continue;
     if (
       q &&
@@ -211,12 +179,10 @@ export function readNoteContent(
   const nodes = buildNoteIndex(notesDir);
   const node = resolveSafeNote(id, nodes);
   if (!node) return null;
-  const raw = readFileSync(node.path, "utf8");
-  let data: Record<string, unknown> = {};
+  const raw = readFileCached(node.path);
   let content = raw;
   try {
     const parsed = parseFrontmatter(raw);
-    data = parsed.data;
     content = parsed.content;
   } catch {
     // keep raw content when frontmatter is malformed
@@ -224,7 +190,7 @@ export function readNoteContent(
   return {
     id: node.relPath,
     title: node.title,
-    date: parseNoteDate(raw, basename(node.relPath)),
+    date: node.date ?? "",
     tags: node.tags,
     content,
     raw,
