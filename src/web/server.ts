@@ -26,7 +26,13 @@ import { buildLinkGraph } from "../utils/linkGraph.js";
 import { buildNoteIndex, normalizeAbsPath } from "../utils/noteIndex.js";
 import { applyNoteMovePlan, buildNoteMovePlan } from "../utils/rewriteLinks.js";
 import { openSafeNote, resolveSafeNote } from "../utils/safeOpenNote.js";
-import { getDashboard, listNotes, readNoteContent } from "./data.js";
+import {
+  appendInbox,
+  getDashboard,
+  listNotes,
+  readNoteContent,
+  writeNoteContent,
+} from "./data.js";
 import { json, openBrowser, readJsonBody } from "./http.js";
 import { renderWebPage } from "./page.js";
 import {
@@ -422,6 +428,29 @@ export function createWebServer(opts: WebServerOptions): Server {
           return;
         }
         json(res, 200, note);
+        return;
+      }
+      if (req.method === "PUT" && path === "/api/note") {
+        const body = (await readJsonBody(req, 4 * 1024 * 1024)) as {
+          id?: unknown;
+          raw?: unknown;
+        } | null;
+        const result = writeNoteContent(settings.notesDir, body?.id, body?.raw);
+        if (result.status === 200) {
+          await autoCommit(`🧠 edit: ${(result.body as { id: string }).id}`);
+          broadcastChange();
+        }
+        json(res, result.status, result.body);
+        return;
+      }
+      if (req.method === "POST" && path === "/api/inbox") {
+        const body = (await readJsonBody(req)) as { text?: unknown } | null;
+        const result = appendInbox(settings.notesDir, body?.text);
+        if (result.status === 200) {
+          await autoCommit("🧠 inbox: quick capture");
+          broadcastChange();
+        }
+        json(res, result.status, result.body);
         return;
       }
       if (req.method === "GET" && path === "/api/backlinks") {

@@ -1,5 +1,5 @@
-import { existsSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readdirSync, mkdirSync, renameSync, writeFileSync, appendFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { PARA_DIRS } from "../config.js";
 import { parseFrontmatter } from "../utils/frontmatter.js";
 import { buildLinkGraph } from "../utils/linkGraph.js";
@@ -195,4 +195,71 @@ export function readNoteContent(
     content,
     raw,
   };
+}
+
+/** 原子写入，避免写入中断产生半截文件（与 whiteboardData 同一模式）。 */
+function atomicWrite(path: string, content: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = `${path}.tmp-${process.pid}`;
+  writeFileSync(tmp, content, "utf8");
+  renameSync(tmp, path);
+}
+
+export interface WriteNoteResult {
+  status: number;
+  body: unknown;
+}
+
+const MAX_NOTE_BYTES = 2 * 1024 * 1024;
+
+/**
+ * WebUI 编辑入口：整体覆盖笔记原始内容（含 frontmatter）。
+ * 只允许写入 notes 内已存在的笔记（resolveSafeNote 白名单校验）。
+ */
+export function writeNoteContent(
+  notesDir: string,
+  id: unknown,
+  raw: unknown,
+): WriteNoteResult {
+  const nodes = buildNoteIndex(notesDir);
+  const node = resolveSafeNote(id, nodes);
+  if (!node) return { status: 404, body: { error: "unknown-note" } };
+  if (typeof raw !== "string") {
+    return { status: 400, body: { error: "invalid-content" } };
+  }
+  if (Buffer.byteLength(raw, "utf8") > MAX_NOTE_BYTES) {
+    return { status: 413, body: { error: "note-too-large" } };
+  }
+  atomicWrite(node.path, raw);
+  return { status: 200, body: { ok: true, id: node.relPath } };
+}
+
+export const INBOX_REL_PATH = "resources/INBOX.md";
+
+function formatLocalDateTime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * 瞬时捕获：向 resources/INBOX.md 追加一条带时间戳的记录。
+ * 纯文本、无需标题——对齐 "打开 Notion 随手记" 的场景。
+ */
+export function appendInbox(notesDir: string, text: unknown): WriteNoteResult {
+  if (typeof text !== "string" || !text.trim()) {
+    return { status: 400, body: { error: "text-required" } };
+  }
+  if (Buffer.byteLength(text, "utf8") > 64 * 1024) {
+    return { status: 413, body: { error: "text-too-large" } };
+  }
+  const path = resolve(notesDir, INBOX_REL_PATH);
+  const now = formatLocalDateTime(new Date());
+  if (!existsSync(path)) {
+    atomicWrite(
+      path,
+      `---\ntitle: "INBOX"\ndate: "${now}"\ntags: [inbox]\ntype: Fleeting\n---\n\n# INBOX\n\n`,
+    );
+  }
+  appendFileSync(path, `## 📥 ${now}\n\n${text.trim()}\n\n`, "utf8");
+  return { status: 200, body: { ok: true, id: INBOX_REL_PATH } };
 }

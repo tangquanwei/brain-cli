@@ -1,11 +1,20 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  appendInbox,
   countMdRecursive,
+  INBOX_REL_PATH,
   listNotes,
   readNoteContent,
+  writeNoteContent,
 } from "../src/web/data.js";
 
 let dir: string;
@@ -93,5 +102,45 @@ describe("readNoteContent", () => {
 
   it("未知笔记返回 null", () => {
     expect(readNoteContent(dir, "projects/ghost.md")).toBeNull();
+  });
+});
+
+describe("writeNoteContent", () => {
+  it("整体覆盖已有笔记原始内容", () => {
+    const result = writeNoteContent(
+      dir,
+      "projects/alpha.md",
+      '---\ntitle: "Alpha"\n---\n\n# Alpha\n\n新内容。\n',
+    );
+    expect(result.status).toBe(200);
+    expect(readFileSync(join(dir, "projects/alpha.md"), "utf8")).toContain(
+      "新内容",
+    );
+    const note = readNoteContent(dir, "projects/alpha.md");
+    expect(note?.raw).toContain("新内容");
+  });
+
+  it("拒绝未知笔记与路径穿越", () => {
+    expect(writeNoteContent(dir, "missing.md", "x").status).toBe(404);
+    expect(writeNoteContent(dir, "../evil.md", "x").status).toBe(404);
+    expect(writeNoteContent(dir, "projects/alpha.md", 42).status).toBe(400);
+  });
+});
+
+describe("appendInbox", () => {
+  it("首次写入时创建 INBOX 并追加，二次写入继续追加", () => {
+    const first = appendInbox(dir, "第一条想法");
+    expect(first.status).toBe(200);
+    appendInbox(dir, "第二条想法");
+    const raw = readFileSync(join(dir, INBOX_REL_PATH), "utf8");
+    expect(raw).toContain("# INBOX");
+    expect(raw.indexOf("第一条想法")).toBeLessThan(raw.indexOf("第二条想法"));
+    // 创建后应能被笔记索引与读取接口看到
+    expect(readNoteContent(dir, INBOX_REL_PATH)?.raw).toContain("第一条想法");
+  });
+
+  it("拒绝空文本", () => {
+    expect(appendInbox(dir, "   ").status).toBe(400);
+    expect(appendInbox(dir, undefined).status).toBe(400);
   });
 });
