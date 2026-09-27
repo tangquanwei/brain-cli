@@ -1,5 +1,12 @@
-import { existsSync, readdirSync, mkdirSync, renameSync, writeFileSync, appendFileSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  mkdirSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
+import matter from "gray-matter";
 import { PARA_DIRS } from "../config.js";
 import { parseFrontmatter } from "../utils/frontmatter.js";
 import { buildLinkGraph } from "../utils/linkGraph.js";
@@ -20,6 +27,29 @@ export function countMdRecursive(dir: string): number {
     }
   }
   return n;
+}
+
+/** Reserve a fresh file exclusively, including when multiple clients create notes. */
+export function createBlankNote(
+  notesDir: string,
+  language: "zh" | "en" = "zh",
+): string {
+  const folder = resolve(notesDir, "resources");
+  mkdirSync(folder, { recursive: true });
+  const base = language === "en" ? "Untitled" : "未命名笔记";
+  for (let index = 1; ; index++) {
+    const name = index === 1 ? base : `${base} ${index}`;
+    const id = `resources/${name}.md`;
+    try {
+      writeFileSync(resolve(notesDir, id), "", {
+        encoding: "utf8",
+        flag: "wx",
+      });
+      return id;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+  }
 }
 
 export interface AreaCount {
@@ -220,6 +250,7 @@ export function writeNoteContent(
   notesDir: string,
   id: unknown,
   raw: unknown,
+  title?: string,
 ): WriteNoteResult {
   const nodes = buildNoteIndex(notesDir);
   const node = resolveSafeNote(id, nodes);
@@ -227,39 +258,18 @@ export function writeNoteContent(
   if (typeof raw !== "string") {
     return { status: 400, body: { error: "invalid-content" } };
   }
-  if (Buffer.byteLength(raw, "utf8") > MAX_NOTE_BYTES) {
+  let content = raw;
+  if (title !== undefined) {
+    try {
+      const parsed = parseFrontmatter(raw);
+      content = matter.stringify(parsed.content, { ...parsed.data, title });
+    } catch {
+      return { status: 400, body: { error: "invalid-frontmatter" } };
+    }
+  }
+  if (Buffer.byteLength(content, "utf8") > MAX_NOTE_BYTES) {
     return { status: 413, body: { error: "note-too-large" } };
   }
-  atomicWrite(node.path, raw);
+  atomicWrite(node.path, content);
   return { status: 200, body: { ok: true, id: node.relPath } };
-}
-
-export const INBOX_REL_PATH = "resources/INBOX.md";
-
-function formatLocalDateTime(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-/**
- * 瞬时捕获：向 resources/INBOX.md 追加一条带时间戳的记录。
- * 纯文本、无需标题——对齐 "打开 Notion 随手记" 的场景。
- */
-export function appendInbox(notesDir: string, text: unknown): WriteNoteResult {
-  if (typeof text !== "string" || !text.trim()) {
-    return { status: 400, body: { error: "text-required" } };
-  }
-  if (Buffer.byteLength(text, "utf8") > 64 * 1024) {
-    return { status: 413, body: { error: "text-too-large" } };
-  }
-  const path = resolve(notesDir, INBOX_REL_PATH);
-  const now = formatLocalDateTime(new Date());
-  if (!existsSync(path)) {
-    atomicWrite(
-      path,
-      `---\ntitle: "INBOX"\ndate: "${now}"\ntags: [inbox]\ntype: Fleeting\n---\n\n# INBOX\n\n`,
-    );
-  }
-  appendFileSync(path, `## 📥 ${now}\n\n${text.trim()}\n\n`, "utf8");
-  return { status: 200, body: { ok: true, id: INBOX_REL_PATH } };
 }

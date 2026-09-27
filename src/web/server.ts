@@ -21,13 +21,15 @@ import {
 } from "../commands/review.js";
 import { buildDirectoryTree } from "../graph/tree.js";
 import { projectLinkGraph } from "../graph/projection.js";
-import { autoCommit, isNotesRepo, notesStatusShort } from "../utils/git.js";
+import { isNotesRepo, notesStatusShort } from "../utils/git.js";
+import { queueWebCommit } from "./commitQueue.js";
+import { readNoteAsset } from "./noteAssets.js";
 import { buildLinkGraph } from "../utils/linkGraph.js";
 import { buildNoteIndex, normalizeAbsPath } from "../utils/noteIndex.js";
 import { applyNoteMovePlan, buildNoteMovePlan } from "../utils/rewriteLinks.js";
 import { openSafeNote, resolveSafeNote } from "../utils/safeOpenNote.js";
 import {
-  appendInbox,
+  createBlankNote,
   getDashboard,
   listNotes,
   readNoteContent,
@@ -133,6 +135,7 @@ function dirnameRelative(oldPath: string): string {
 async function moveNote(
   id: unknown,
   targetArg: unknown,
+  commit = true,
 ): Promise<{ status: number; body: unknown }> {
   const nodes = buildNoteIndex(settings.notesDir);
   const node = resolveSafeNote(id, nodes);
@@ -144,7 +147,7 @@ async function moveNote(
   if ("error" in target) return { status: 400, body: { error: target.error } };
   const plan = buildNoteMovePlan(node.path, target.newPath);
   applyNoteMovePlan(plan);
-  await autoCommit(`🧠 move: ${node.relPath}`);
+  if (commit) queueWebCommit(`🧠 move: ${node.relPath}`);
   return {
     status: 200,
     body: {
@@ -308,6 +311,11 @@ export function createWebServer(opts: WebServerOptions): Server {
           ".js": "text/javascript",
           ".woff2": "font/woff2",
           ".woff": "font/woff",
+          ".ttf": "font/ttf",
+          ".svg": "image/svg+xml",
+          ".png": "image/png",
+          ".jpg": "image/jpeg",
+          ".gif": "image/gif",
         };
         if (
           !asset.startsWith(root + sep) ||
@@ -342,6 +350,27 @@ export function createWebServer(opts: WebServerOptions): Server {
         return;
       }
 
+      if (req.method === "GET" && path === "/api/note-asset") {
+        // Vditor appends the original relative URL to linkBase. Keep path last
+        // so filenames containing '&' remain intact, and validate the real path.
+        const match = /[?&]path=(.*)$/.exec(url.search);
+        const asset = match
+          ? readNoteAsset(settings.notesDir, decodeURIComponent(match[1]!))
+          : null;
+        if (!asset) {
+          json(res, 404, { error: "not-found" });
+          return;
+        }
+        res.writeHead(200, {
+          "Content-Type": asset.type,
+          "Cache-Control": "private, no-cache",
+          "Content-Security-Policy":
+            "sandbox; default-src 'none'; style-src 'unsafe-inline'",
+        });
+        res.end(asset.data);
+        return;
+      }
+
       if (req.method === "GET" && path === "/api/settings") {
         json(res, 200, readSettingsSnapshot());
         return;
@@ -358,7 +387,11 @@ export function createWebServer(opts: WebServerOptions): Server {
         for (const key of ENV_KEYS) {
           // 令牌与监听地址只能通过 .env/环境变量配置，
           // 绝不允许通过设置 UI 写入（避免网页端篡改访问控制）。
-          if (key === "NOTION_TOKEN" || key === "WEB_TOKEN" || key === "WEB_HOST")
+          if (
+            key === "NOTION_TOKEN" ||
+            key === "WEB_TOKEN" ||
+            key === "WEB_HOST"
+          )
             continue;
           const value = (body.values as Record<string, unknown>)[key];
           if (value !== undefined) {
@@ -448,20 +481,66 @@ export function createWebServer(opts: WebServerOptions): Server {
         const body = (await readJsonBody(req, 4 * 1024 * 1024)) as {
           id?: unknown;
           raw?: unknown;
+          title?: unknown;
         } | null;
-        const result = writeNoteContent(settings.notesDir, body?.id, body?.raw);
-        if (result.status === 200) {
-          await autoCommit(`🧠 edit: ${(result.body as { id: string }).id}`);
-          broadcastChange();
+        let renameTo: string | undefined;
+        let title: string | undefined;
+        if (body?.title !== undefined) {
+          if (
+            typeof body.title !== "string" ||
+            !body.title.trim() ||
+            /[<>:"/\\|?*\x00-\x1f]/.test(body.title) ||
+            /[. ]$/.test(body.title) ||
+            /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(
+              body.title.trim(),
+            )
+          ) {
+            json(res, 400, {
+              error: "请输入有效的笔记名称，不含路径或文件名特殊字符",
+            });
+            return;
+          }
+          title = body.title.trim();
+          const node = resolveSafeNote(
+            body.id,
+            buildNoteIndex(settings.notesDir),
+          );
+          if (!node) {
+            json(res, 404, { error: "unknown-note" });
+            return;
+          }
+          const filename = title.endsWith(".md") ? title : `${title}.md`;
+          if (node.relPath.split("/").pop() !== filename) {
+            const target = resolveMoveTarget(node.path, title);
+            if ("error" in target) {
+              json(res, 400, { error: target.error });
+              return;
+            }
+            renameTo = title;
+          }
         }
-        json(res, result.status, result.body);
-        return;
-      }
-      if (req.method === "POST" && path === "/api/inbox") {
-        const body = (await readJsonBody(req)) as { text?: unknown } | null;
-        const result = appendInbox(settings.notesDir, body?.text);
+        const result = writeNoteContent(
+          settings.notesDir,
+          body?.id,
+          body?.raw,
+          title,
+        );
         if (result.status === 200) {
-          await autoCommit("🧠 inbox: quick capture");
+          if (renameTo) {
+            const moved = await moveNote(body?.id, renameTo, false);
+            if (moved.status !== 200) {
+              json(res, moved.status, moved.body);
+              return;
+            }
+            (result.body as { id: string }).id = (
+              moved.body as { to: string }
+            ).to;
+          }
+          queueWebCommit(`🧠 edit: ${(result.body as { id: string }).id}`);
+          (result.body as { note?: unknown }).note = readNoteContent(
+            settings.notesDir,
+            (result.body as { id: string }).id,
+          );
           broadcastChange();
         }
         json(res, result.status, result.body);
@@ -549,6 +628,17 @@ export function createWebServer(opts: WebServerOptions): Server {
           return;
         }
         json(res, 200, { ok: true });
+        return;
+      }
+      if (req.method === "POST" && path === "/api/notes") {
+        const body = (await readJsonBody(req)) as { language?: unknown } | null;
+        const id = createBlankNote(
+          settings.notesDir,
+          body?.language === "en" ? "en" : "zh",
+        );
+        queueWebCommit(`🧠 new: ${id}`);
+        broadcastChange();
+        json(res, 201, { ok: true, id });
         return;
       }
       if (req.method === "POST" && path === "/api/capture") {

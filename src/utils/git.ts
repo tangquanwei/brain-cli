@@ -134,14 +134,14 @@ async function commitChanges(
  * Returns true if a notes commit was actually made. Honors
  * `settings.gitAutoCommit` unless `force = true`.
  */
-export async function autoCommit(message?: string, force = false): Promise<boolean> {
+export async function autoCommit(message?: string, force = false, notesDir = settings.notesDir): Promise<boolean> {
   if (!settings.gitAutoCommit && !force) return false;
-  if (!(await isNotesRepo())) {
+  const git = simpleGit(notesDir);
+  if (!(await checkRepo(git))) {
     log(`  ${c.error("❌ notes 目录不是 Git 仓库，无法备份")}`);
     return false;
   }
 
-  const git = notesGit();
   const noteStatus = await statusShortFor(git);
   return commitChanges(git, "notes", noteStatus, message);
 }

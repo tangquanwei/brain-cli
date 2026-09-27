@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, withToken, setToken } from "./api";
 import { lastWhiteboard } from "./whiteboardSession";
 import { Modal } from "./components/Modal";
+import { SearchModal } from "./components/SearchModal";
 import { ToastProvider, useToast } from "./components/Toast";
 import { I18nProvider, useI18n, type TranslationKey } from "./i18n";
 import { Dashboard } from "./views/Dashboard";
@@ -34,7 +35,7 @@ function parseHash(): Route {
   const key =
     view === "settings" || VIEWS.some((v) => v.key === view)
       ? (view as ViewKey)
-      : "dashboard";
+      : "notes";
   return {
     view: key,
     param: rest.join("/")
@@ -56,147 +57,25 @@ export function navigate(view: ViewKey, param?: string): void {
   }
 }
 
-function CaptureModal({
-  onClose,
-  onCaptured,
-}: {
-  onClose: () => void;
-  onCaptured: (id: string) => void;
-}) {
-  const toast = useToast();
-  const { t } = useI18n();
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState("Fleeting");
-  const [tags, setTags] = useState("");
-  const [content, setContent] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (!title.trim()) {
-      toast(t("capture.titleRequired"));
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = await api.capture({
-        title: title.trim(),
-        type,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        content,
-      });
-      toast(t("capture.success"));
-      onCaptured(result.id);
-    } catch (e) {
-      toast((e as Error).message);
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Modal title={t("capture.modalTitle")} onClose={onClose}>
-      <div className="field">
-        <label>{t("capture.title")}</label>
-        <input
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={t("capture.titlePlaceholder")}
-        />
-      </div>
-      <div className="field">
-        <label>{t("capture.type")}</label>
-        <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="Fleeting">{t("capture.typeFleeting")}</option>
-          <option value="Literature">{t("capture.typeLiterature")}</option>
-          <option value="Permanent">{t("capture.typePermanent")}</option>
-          <option value="Project">{t("capture.typeProject")}</option>
-        </select>
-      </div>
-      <div className="field">
-        <label>{t("capture.tags")}</label>
-        <input
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder="tag1, tag2"
-        />
-      </div>
-      <div className="field">
-        <label>{t("capture.content")}</label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={t("capture.contentPlaceholder")}
-        />
-      </div>
-      <div className="actions">
-        <button className="btn" onClick={onClose}>
-          {t("common.cancel")}
-        </button>
-        <button className="btn primary" disabled={busy} onClick={submit}>
-          {t("capture.submit")}
-        </button>
-      </div>
-    </Modal>
-  );
-}
-
-function InboxModal({ onClose }: { onClose: () => void }) {
-  const toast = useToast();
-  const { t } = useI18n();
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (!text.trim()) {
-      toast(t("inbox.empty"));
-      return;
-    }
-    setBusy(true);
-    try {
-      await api.inbox(text.trim());
-      toast(t("inbox.success"));
-      setText("");
-      onClose();
-    } catch (e) {
-      toast((e as Error).message);
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Modal title={t("inbox.title")} onClose={onClose}>
-      <div className="field">
-        <textarea
-          autoFocus
-          rows={6}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") submit();
-          }}
-          placeholder={t("inbox.placeholder")}
-        />
-      </div>
-      <div className="actions">
-        <button className="btn" onClick={onClose}>
-          {t("common.cancel")}
-        </button>
-        <button className="btn primary" disabled={busy} onClick={submit}>
-          {t("inbox.submit")}
-        </button>
-      </div>
-    </Modal>
-  );
+/** A saved rename changes the address, not the active editing session. */
+export function replaceNoteRoute(from: string, to: string): void {
+  const current = parseHash();
+  if (current.view !== "notes" || current.param !== from) return;
+  history.replaceState(null, "", `#/notes/${encodeURIComponent(to)}`);
+  window.dispatchEvent(new CustomEvent("brain:note-renamed"));
 }
 
 function Shell() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const toast = useToast();
   const [route, setRoute] = useState<Route>(parseHash);
-  const [capturing, setCapturing] = useState(false);
-  const [inboxOpen, setInboxOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const preserveScroll = useRef(false);
+  const [creatingPage, setCreatingPage] = useState(false);
+  const creatingRef = useRef(false);
+  const [newNoteId, setNewNoteId] = useState<string | null>(null);
+  const editStarted = useCallback(() => setNewNoteId(null), []);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
   const [needsToken, setNeedsToken] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -208,12 +87,49 @@ function Shell() {
   });
 
   useEffect(() => {
-    const onHash = () => setRoute(parseHash());
+    const onHash = () => {
+      setRoute(parseHash());
+    };
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    const onRenamed = () => {
+      preserveScroll.current = true;
+      setRoute(parseHash());
+    };
+    window.addEventListener("brain:note-renamed", onRenamed);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("brain:note-renamed", onRenamed);
+    };
   }, []);
 
   const mutated = useCallback(() => setDataVersion((v) => v + 1), []);
+
+  useEffect(() => {
+    if (preserveScroll.current) {
+      preserveScroll.current = false;
+      return;
+    }
+    if (window.matchMedia("(max-width: 600px)").matches && mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [route.view, route.param]);
+
+  const createPage = async () => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
+    setCreatingPage(true);
+    try {
+      const result = await api.createNote(language);
+      setNewNoteId(result.id);
+      mutated();
+      navigate("notes", result.id);
+    } catch (error) {
+      toast((error as Error).message);
+    } finally {
+      creatingRef.current = false;
+      setCreatingPage(false);
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarCollapsed((current) => {
@@ -239,19 +155,8 @@ function Shell() {
   useEffect(() => {
     const onUnauthorized = () => setNeedsToken(true);
     window.addEventListener("brain:unauthorized", onUnauthorized);
-    return () => window.removeEventListener("brain:unauthorized", onUnauthorized);
-  }, []);
-
-  // 全局快捷键 Cmd/Ctrl+J 唤起瞬时记录
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
-        e.preventDefault();
-        setInboxOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () =>
+      window.removeEventListener("brain:unauthorized", onUnauthorized);
   }, []);
 
   return (
@@ -286,17 +191,20 @@ function Shell() {
             key={v.key}
             className={`nav-item${route.view === v.key ? " active" : ""}`}
             onClick={() => navigate(v.key)}
+            aria-label={t(v.label)}
+            aria-current={route.view === v.key ? "page" : undefined}
           >
             <span className="icon">{v.icon}</span>
             <span className="txt">{t(v.label as TranslationKey)}</span>
           </button>
         ))}
         <div className="spacer" />
-        <button className="capture-btn" onClick={() => setInboxOpen(true)}>
-          💡 <span>{t("inbox.open")}</span>
-        </button>
-        <button className="capture-btn" onClick={() => setCapturing(true)}>
-          ＋ <span>{t("nav.capture")}</span>
+        <button
+          className="new-page-btn"
+          onClick={createPage}
+          disabled={creatingPage}
+        >
+          ＋ <span>{t("nav.newPage")}</span>
         </button>
         <button
           className={`settings-btn${route.view === "settings" ? " active" : ""}`}
@@ -310,11 +218,42 @@ function Shell() {
           ⚙ <span>{t("settings.title")}</span>
         </button>
       </nav>
-      <main className="main">
+      <header className="mobile-header">
+        <div className="mobile-workspace">
+          <strong>
+            2nd<span>Brain</span>
+          </strong>
+          <div className="mobile-workspace-actions">
+            <button
+              onClick={() => navigate("settings")}
+              aria-label={t("settings.title")}
+              aria-current={route.view === "settings" ? "page" : undefined}
+            >
+              <span aria-hidden="true">⚙</span>
+            </button>
+          </div>
+        </div>
+        <nav className="mobile-functions" aria-label={t("nav.main")}>
+          {[VIEWS[1], VIEWS[0], ...VIEWS.slice(2)].map((v) => (
+            <button
+              key={v.key}
+              className={route.view === v.key ? "active" : ""}
+              onClick={() => navigate(v.key)}
+              aria-current={route.view === v.key ? "page" : undefined}
+            >
+              <span aria-hidden="true">{v.icon}</span>
+              <span>{t(v.key === "graph" ? "nav.graphShort" : v.label)}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
+      <main className="main" ref={mainRef}>
         {route.view === "dashboard" && <Dashboard dataVersion={dataVersion} />}
         {route.view === "notes" && (
           <Notes
             noteId={route.param}
+            autoEditId={newNoteId}
+            onEditStarted={editStarted}
             dataVersion={dataVersion}
             onMutated={mutated}
           />
@@ -332,18 +271,42 @@ function Shell() {
         )}
         {route.view === "settings" && <Settings dataVersion={dataVersion} />}
       </main>
-      {capturing && (
-        <CaptureModal
-          onClose={() => setCapturing(false)}
-          onCaptured={(id) => {
-            setCapturing(false);
-            mutated();
-            navigate("notes", id);
-          }}
-        />
-      )}
+      <div
+        className="mobile-actions"
+        role="group"
+        aria-label={t("nav.pageActions")}
+      >
+        <button
+          className="mobile-search-button"
+          onClick={() => setSearchOpen(true)}
+          aria-haspopup="dialog"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m16 16 5 5" />
+          </svg>
+          <span>{t("nav.search")}</span>
+        </button>
+        <button
+          className="mobile-create-button"
+          onClick={createPage}
+          disabled={creatingPage}
+          aria-busy={creatingPage}
+        >
+          <span aria-hidden="true">＋</span>
+          {t("nav.newPage")}
+        </button>
+      </div>
+      {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
       {needsToken && <TokenGate />}
-      {inboxOpen && <InboxModal onClose={() => setInboxOpen(false)} />}
     </div>
   );
 }

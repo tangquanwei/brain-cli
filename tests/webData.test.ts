@@ -9,9 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  appendInbox,
+  createBlankNote,
   countMdRecursive,
-  INBOX_REL_PATH,
   listNotes,
   readNoteContent,
   writeNoteContent,
@@ -127,20 +126,52 @@ describe("writeNoteContent", () => {
   });
 });
 
-describe("appendInbox", () => {
-  it("首次写入时创建 INBOX 并追加，二次写入继续追加", () => {
-    const first = appendInbox(dir, "第一条想法");
-    expect(first.status).toBe(200);
-    appendInbox(dir, "第二条想法");
-    const raw = readFileSync(join(dir, INBOX_REL_PATH), "utf8");
-    expect(raw).toContain("# INBOX");
-    expect(raw.indexOf("第一条想法")).toBeLessThan(raw.indexOf("第二条想法"));
-    // 创建后应能被笔记索引与读取接口看到
-    expect(readNoteContent(dir, INBOX_REL_PATH)?.raw).toContain("第一条想法");
+describe("createBlankNote", () => {
+  it("creates an empty Markdown note in resources that the reader can open", () => {
+    const id = createBlankNote(dir);
+    expect(id).toBe("resources/未命名笔记.md");
+    expect(readNoteContent(dir, id)?.raw).toBe("");
   });
 
-  it("拒绝空文本", () => {
-    expect(appendInbox(dir, "   ").status).toBe(400);
-    expect(appendInbox(dir, undefined).status).toBe(400);
+  it("preserves existing notes and reserves different filenames for repeated creation", () => {
+    writeNote("resources/Untitled.md", "Existing content");
+    writeNote("resources/Untitled 2.md", "Another note");
+    expect(createBlankNote(dir, "en")).toBe("resources/Untitled 3.md");
+    expect(createBlankNote(dir, "en")).toBe("resources/Untitled 4.md");
+    expect(readFileSync(join(dir, "resources/Untitled.md"), "utf8")).toBe(
+      "Existing content",
+    );
+    expect(readFileSync(join(dir, "resources/Untitled 2.md"), "utf8")).toBe(
+      "Another note",
+    );
+  });
+});
+
+describe("editing a note title", () => {
+  it("updates frontmatter title while preserving metadata and body", () => {
+    const result = writeNoteContent(
+      dir,
+      "projects/alpha.md",
+      "---\ntitle: Old\ntags: [work]\ntype: Project\n---\n\nBody stays here.\n",
+      "A new title",
+    );
+    expect(result.status).toBe(200);
+    const note = readNoteContent(dir, "projects/alpha.md");
+    expect(note?.title).toBe("A new title");
+    expect(note?.tags).toEqual(["work"]);
+    expect(note?.content).toContain("Body stays here.");
+  });
+
+  it("does not overwrite the file when edited frontmatter cannot be parsed", () => {
+    const before = readFileSync(join(dir, "gamma.md"), "utf8");
+    expect(
+      writeNoteContent(
+        dir,
+        "gamma.md",
+        "---\ntags: [broken\n---\nBody",
+        "New name",
+      ).status,
+    ).toBe(400);
+    expect(readFileSync(join(dir, "gamma.md"), "utf8")).toBe(before);
   });
 });

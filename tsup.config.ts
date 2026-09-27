@@ -32,8 +32,13 @@ export default defineConfig([
       "marked",
       "@excalidraw/excalidraw",
       "dompurify",
+      "vditor",
     ],
     async onSuccess() {
+      mkdirSync("dist/web/vditor", { recursive: true });
+      cpSync("node_modules/vditor/dist", "dist/web/vditor/dist", {
+        recursive: true,
+      });
       mkdirSync("dist/web/excalidraw", { recursive: true });
       cpSync(
         "node_modules/@excalidraw/excalidraw/dist/prod/fonts",

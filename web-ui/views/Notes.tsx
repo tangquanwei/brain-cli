@@ -1,7 +1,12 @@
 import { marked } from "marked";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
-import { navigate } from "../App";
+import { navigate, replaceNoteRoute } from "../App";
+import {
+  MarkdownEditor,
+  type MarkdownEditorHandle,
+} from "../components/MarkdownEditor";
+import { splitMarkdownDocument } from "../markdownDocument";
 import { Modal } from "../components/Modal";
 import { useToast } from "../components/Toast";
 import { TreeView } from "../components/TreeView";
@@ -123,10 +128,14 @@ function Reader({
   id,
   dataVersion,
   onMutated,
+  autoEdit,
+  onEditStarted,
 }: {
   id: string;
   dataVersion: number;
   onMutated: () => void;
+  autoEdit: boolean;
+  onEditStarted: () => void;
 }) {
   const toast = useToast();
   const { t } = useI18n();
@@ -138,22 +147,91 @@ function Reader({
   const [modal, setModal] = useState<"rename" | "move" | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [draftTitle, setDraftTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const editingRef = useRef(false);
+  const loadedId = useRef(id);
+  const editorRef = useRef<MarkdownEditorHandle>(null);
+  const prefix = useRef("");
+  const savedBody = useRef("");
+  const savingRef = useRef(false);
+  const [savedTitle, setSavedTitle] = useState("");
+  const dirty =
+    editing &&
+    (draft !== savedBody.current || draftTitle.trim() !== savedTitle);
 
   useEffect(() => {
+    if (!editing) return;
+    const hasChanges = () =>
+      (editorRef.current?.getValue() ?? draft) !== savedBody.current ||
+      draftTitle.trim() !== savedTitle;
+    const beforeNavigate = (event: Event) => {
+      if (
+        savingRef.current ||
+        (hasChanges() && !window.confirm(t("notes.discardChanges")))
+      )
+        event.preventDefault();
+    };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (savingRef.current || hasChanges()) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("brain:navigate", beforeNavigate);
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => {
+      window.removeEventListener("brain:navigate", beforeNavigate);
+      window.removeEventListener("beforeunload", beforeUnload);
+    };
+  }, [editing, draft, draftTitle, savedTitle, t]);
+
+  useEffect(() => {
+    if (loadedId.current !== id) {
+      loadedId.current = id;
+      editingRef.current = false;
+      setEditing(false);
+      setNote(null);
+    }
     // 编辑中跳过 SSE 触发的自动刷新，避免覆盖未保存内容
     if (editingRef.current) return;
-    setNote(null);
     setError("");
-    api.note(id).then(setNote, (e) => setError((e as Error).message));
+    let cancelled = false;
+    api.note(id).then(
+      (loaded) => {
+        if (cancelled) return;
+        setNote(loaded);
+        if (autoEdit) {
+          editingRef.current = true;
+          const parts = splitMarkdownDocument(loaded.raw);
+          prefix.current = parts.prefix;
+          savedBody.current = parts.body;
+          setDraft(parts.body);
+          setDraftTitle(loaded.title);
+          setSavedTitle(loaded.title);
+          setEditing(true);
+          onEditStarted();
+        }
+      },
+      (e) => {
+        if (!cancelled) setError((e as Error).message);
+      },
+    );
     api.backlinks(id).then(setBacklinks, () => setBacklinks([]));
-  }, [id, dataVersion]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, dataVersion, autoEdit, onEditStarted, editing]);
 
   const startEdit = () => {
     if (!note) return;
     editingRef.current = true;
-    setDraft(note.raw);
+    const parts = splitMarkdownDocument(note.raw);
+    prefix.current = parts.prefix;
+    savedBody.current = parts.body;
+    setDraft(parts.body);
+    setDraftTitle(note.title);
+    setSavedTitle(note.title);
     setEditing(true);
   };
 
@@ -163,19 +241,51 @@ function Reader({
   };
 
   const saveEdit = async () => {
-    if (saving) return;
+    if (savingRef.current) return;
+    if (!draftTitle.trim()) {
+      toast(t("capture.titleRequired"));
+      return;
+    }
+    savingRef.current = true;
     setSaving(true);
+    const body = editorRef.current?.getValue() ?? draft;
+    const title = draftTitle.trim();
+    const previousId = loadedId.current;
     try {
-      await api.saveNote(id, draft);
+      const result = await api.saveNote(
+        previousId,
+        prefix.current + body,
+        title !== note?.title ? title : undefined,
+      );
+      if (loadedId.current !== previousId) return;
+      const saved = result.note;
+      loadedId.current = result.id;
+      prefix.current = splitMarkdownDocument(saved.raw).prefix;
+      savedBody.current = body;
+      setSavedTitle(title);
+      setNote(saved);
       toast(t("notes.saved"));
-      cancelEdit();
       onMutated();
+      if (result.id !== previousId) replaceNoteRoute(previousId, result.id);
     } catch (e) {
       toast((e as Error).message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        if (!event.isComposing) void saveEdit();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const publish = async () => {
     if (publishing) return;
@@ -217,8 +327,18 @@ function Reader({
   return (
     <div className="reader">
       <div className="reader-head">
-        <div>
-          <h2>{note.title}</h2>
+        <div className="reader-title-block">
+          {editing ? (
+            <input
+              className="note-title-editor"
+              aria-label={t("capture.title")}
+              value={draftTitle}
+              placeholder={t("capture.titlePlaceholder")}
+              onChange={(e) => setDraftTitle(e.target.value)}
+            />
+          ) : (
+            <h2>{note.title}</h2>
+          )}
           <div className="meta">
             {note.id}
             {note.date ? ` · ${note.date}` : ""}
@@ -236,43 +356,68 @@ function Reader({
         <div className="btn-row">
           {editing ? (
             <>
-              <button className="btn primary" disabled={saving} onClick={saveEdit}>
+              <button
+                className="btn primary"
+                disabled={saving}
+                onClick={saveEdit}
+              >
                 {saving ? t("notes.saving") : t("notes.save")}
               </button>
-              <button className="btn" onClick={cancelEdit}>
-                {t("common.cancel")}
+              <button className="btn" disabled={saving} onClick={cancelEdit}>
+                {t(dirty ? "common.cancel" : "notes.done")}
               </button>
+              <span className="note-save-status" role="status">
+                {t(
+                  saving
+                    ? "notes.saving"
+                    : dirty
+                      ? "notes.unsaved"
+                      : "notes.saved",
+                )}
+              </span>
             </>
           ) : (
             <button className="btn" onClick={startEdit}>
               {t("notes.edit")}
             </button>
           )}
-          <button
-            className="btn primary"
-            disabled={publishing || editing}
-            onClick={publish}
-            title={t("notes.publishHint")}
-          >
-            {publishing ? t("notes.publishing") : t("notes.publish")}
-          </button>
-          <button
-            className="btn"
-            onClick={() =>
-              api
-                .open(id)
-                .then(() => toast(t("common.openedInVSCode")))
-                .catch((e) => toast((e as Error).message))
-            }
-          >
-            VS Code
-          </button>
-          <button className="btn" onClick={() => setModal("rename")}>
-            {t("notes.rename")}
-          </button>
-          <button className="btn" onClick={() => setModal("move")}>
-            {t("notes.move")}
-          </button>
+          {!editing && (
+            <>
+              <button
+                className="btn primary"
+                disabled={publishing}
+                onClick={publish}
+                title={t("notes.publishHint")}
+              >
+                {publishing ? t("notes.publishing") : t("notes.publish")}
+              </button>
+              <button
+                className="btn"
+                onClick={() =>
+                  api
+                    .open(id)
+                    .then(() => toast(t("common.openedInVSCode")))
+                    .catch((e) => toast((e as Error).message))
+                }
+              >
+                VS Code
+              </button>
+              <button
+                className="btn"
+                disabled={editing}
+                onClick={() => setModal("rename")}
+              >
+                {t("notes.rename")}
+              </button>
+              <button
+                className="btn"
+                disabled={editing}
+                onClick={() => setModal("move")}
+              >
+                {t("notes.move")}
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div className="reader-body">
@@ -282,11 +427,12 @@ function Reader({
           </p>
         )}
         {editing ? (
-          <textarea
-            className="note-editor"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            spellCheck={false}
+          <MarkdownEditor
+            ref={editorRef}
+            noteId={id}
+            initialValue={draft}
+            onChange={setDraft}
+            onSave={() => void saveEdit()}
           />
         ) : (
           <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
@@ -344,10 +490,14 @@ export function Notes({
   noteId,
   dataVersion,
   onMutated,
+  autoEditId,
+  onEditStarted,
 }: {
   noteId: string | null;
   dataVersion: number;
   onMutated: () => void;
+  autoEditId: string | null;
+  onEditStarted: () => void;
 }) {
   const toast = useToast();
   const { t } = useI18n();
@@ -373,8 +523,19 @@ export function Notes({
 
   return (
     <>
-      <h1 className="page-title">{t("nav.notes")}</h1>
-      <div className="notes-grid">
+      <div className="notes-heading">
+        {noteId && (
+          <button
+            className="mobile-notes-back btn"
+            onClick={() => navigate("notes")}
+          >
+            <span aria-hidden="true">‹ </span>
+            {t("notes.backToList")}
+          </button>
+        )}
+        <h1 className="page-title">{t("nav.notes")}</h1>
+      </div>
+      <div className={`notes-grid${noteId ? " has-note" : ""}`}>
         <div className="tree-pane">
           <input
             className="search"
@@ -419,13 +580,14 @@ export function Notes({
         </div>
         {noteId ? (
           <Reader
-            key={noteId}
             id={noteId}
+            autoEdit={autoEditId === noteId}
+            onEditStarted={onEditStarted}
             dataVersion={dataVersion}
             onMutated={onMutated}
           />
         ) : (
-          <div className="reader">
+          <div className="reader notes-placeholder">
             <div className="reader-empty">
               {t("notes.selectPrompt")}
               <br />
