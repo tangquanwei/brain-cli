@@ -81,6 +81,14 @@ export const api = {
     request<NoteSummary[]>(`/api/notes?q=${encodeURIComponent(q)}`),
   note: (id: string) =>
     request<NoteContent>(`/api/note?id=${encodeURIComponent(id)}`),
+  saveNote: (id: string, raw: string) =>
+    request<{ ok: boolean; id: string }>("/api/note", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, raw }),
+    }),
+  inbox: (text: string) =>
+    post<{ ok: boolean; id: string }>("/api/inbox", { text }),
   backlinks: (id: string) =>
     request<BacklinkEdge[]>(`/api/backlinks?id=${encodeURIComponent(id)}`),
   review: (mode: string, extra = "") =>

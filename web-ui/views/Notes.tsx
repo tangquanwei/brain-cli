@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import { navigate } from "../App";
 import { Modal } from "../components/Modal";
@@ -136,13 +136,46 @@ function Reader({
   const [backlinks, setBacklinks] = useState<BacklinkEdge[]>([]);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<"rename" | "move" | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const editingRef = useRef(false);
 
   useEffect(() => {
+    // 编辑中跳过 SSE 触发的自动刷新，避免覆盖未保存内容
+    if (editingRef.current) return;
     setNote(null);
     setError("");
     api.note(id).then(setNote, (e) => setError((e as Error).message));
     api.backlinks(id).then(setBacklinks, () => setBacklinks([]));
   }, [id, dataVersion]);
+
+  const startEdit = () => {
+    if (!note) return;
+    editingRef.current = true;
+    setDraft(note.raw);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    editingRef.current = false;
+    setEditing(false);
+  };
+
+  const saveEdit = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await api.saveNote(id, draft);
+      toast(t("notes.saved"));
+      cancelEdit();
+      onMutated();
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const publish = async () => {
     if (publishing) return;
@@ -201,9 +234,23 @@ function Reader({
           )}
         </div>
         <div className="btn-row">
+          {editing ? (
+            <>
+              <button className="btn primary" disabled={saving} onClick={saveEdit}>
+                {saving ? t("notes.saving") : t("notes.save")}
+              </button>
+              <button className="btn" onClick={cancelEdit}>
+                {t("common.cancel")}
+              </button>
+            </>
+          ) : (
+            <button className="btn" onClick={startEdit}>
+              {t("notes.edit")}
+            </button>
+          )}
           <button
             className="btn primary"
-            disabled={publishing}
+            disabled={publishing || editing}
             onClick={publish}
             title={t("notes.publishHint")}
           >
@@ -234,8 +281,17 @@ function Reader({
             {publishResult}
           </p>
         )}
-        <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
-        {backlinks.length > 0 && (
+        {editing ? (
+          <textarea
+            className="note-editor"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            spellCheck={false}
+          />
+        ) : (
+          <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
+        )}
+        {!editing && backlinks.length > 0 && (
           <>
             <h3 style={{ marginTop: 28, fontSize: 15 }}>
               {t("notes.backlinks", { count: backlinks.length })}

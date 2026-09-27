@@ -143,10 +143,60 @@ function CaptureModal({
   );
 }
 
+function InboxModal({ onClose }: { onClose: () => void }) {
+  const toast = useToast();
+  const { t } = useI18n();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!text.trim()) {
+      toast(t("inbox.empty"));
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.inbox(text.trim());
+      toast(t("inbox.success"));
+      setText("");
+      onClose();
+    } catch (e) {
+      toast((e as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title={t("inbox.title")} onClose={onClose}>
+      <div className="field">
+        <textarea
+          autoFocus
+          rows={6}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") submit();
+          }}
+          placeholder={t("inbox.placeholder")}
+        />
+      </div>
+      <div className="actions">
+        <button className="btn" onClick={onClose}>
+          {t("common.cancel")}
+        </button>
+        <button className="btn primary" disabled={busy} onClick={submit}>
+          {t("inbox.submit")}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 function Shell() {
   const { t } = useI18n();
   const [route, setRoute] = useState<Route>(parseHash);
   const [capturing, setCapturing] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
   const [needsToken, setNeedsToken] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -192,6 +242,18 @@ function Shell() {
     return () => window.removeEventListener("brain:unauthorized", onUnauthorized);
   }, []);
 
+  // 全局快捷键 Cmd/Ctrl+J 唤起瞬时记录
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setInboxOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div className={`app${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <nav className="sidebar">
@@ -230,6 +292,9 @@ function Shell() {
           </button>
         ))}
         <div className="spacer" />
+        <button className="capture-btn" onClick={() => setInboxOpen(true)}>
+          💡 <span>{t("inbox.open")}</span>
+        </button>
         <button className="capture-btn" onClick={() => setCapturing(true)}>
           ＋ <span>{t("nav.capture")}</span>
         </button>
@@ -278,6 +343,7 @@ function Shell() {
         />
       )}
       {needsToken && <TokenGate />}
+      {inboxOpen && <InboxModal onClose={() => setInboxOpen(false)} />}
     </div>
   );
 }

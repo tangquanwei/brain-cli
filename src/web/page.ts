@@ -217,6 +217,13 @@ input:focus,select:focus,textarea:focus { border-color:var(--accent); box-shadow
 .reader-head .meta { color:var(--secondary); font-size:12px; margin-top:3px; overflow-wrap:anywhere; }
 .reader-head .btn-row { margin-left:auto; }
 .reader-body { padding:10px 26px 30px; }
+.note-editor {
+  width:100%; min-height:60vh; resize:vertical;
+  font:14px/1.7 "SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  background:var(--card); color:var(--text);
+  border:1px solid var(--line); border-radius:10px; padding:14px;
+  white-space:pre-wrap; word-break:break-word;
+}
 .reader-empty { padding:70px 20px; text-align:center; color:var(--secondary); }
 
 /* Markdown 排版 */
