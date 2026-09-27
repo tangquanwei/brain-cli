@@ -16,7 +16,7 @@ import {
   runWatchStatus,
 } from "./commands/watch.js";
 import { runRename } from "./commands/rename.js";
-import { runWeb } from "./commands/web.js";
+import { runWeb, runWebStop, runWebStatus } from "./commands/web.js";
 import { runLinks } from "./commands/links.js";
 import { runBacklinks } from "./commands/backlinks.js";
 import { runMove } from "./commands/move.js";
@@ -201,16 +201,39 @@ program
     await runBacklinks(note);
   });
 
-program
+const web = program
   .command("web")
   .description("[混合] 启动本地 WebUI（浏览只读，编辑操作写入）")
   .option("--open", "启动后自动在浏览器中打开", false)
   .option("-p, --port <number>", "监听端口", "3739")
-  .action(async (opts: { open: boolean; port: string }) => {
-    await runWeb({
-      open: opts.open,
-      port: parseInt(opts.port, 10) || 3739,
-    });
+  .option("--daemon", "后台守护进程方式运行（brain web stop 停止）", false)
+  .option("--daemon-child", "内部使用：守护进程子进程标记", false)
+  .action(
+    async (opts: {
+      open: boolean;
+      port: number;
+      daemon: boolean;
+      daemonChild: boolean;
+    }) => {
+      await runWeb({
+        open: opts.open,
+        port: parseInt(String(opts.port), 10) || 3739,
+        daemon: opts.daemon,
+        daemonChild:
+          opts.daemonChild || process.env.BRAIN_WEB_DAEMON_CHILD === "1",
+      });
+    },
+  );
+web
+  .command("stop")
+  .description("[进程控制] 停止 WebUI 守护进程")
+  .action(runWebStop);
+web
+  .command("status")
+  .description("[只读] 查看 WebUI 守护进程状态")
+  .option("-p, --port <number>", "监听端口", "3739")
+  .action((opts: { port: string }) => {
+    runWebStatus(parseInt(opts.port, 10) || 3739);
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

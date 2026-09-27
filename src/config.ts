@@ -14,6 +14,8 @@ export const ENV_KEYS = [
   "WATCH_ENABLED",
   "PUSH_INTERVAL",
   "COMMIT_INTERVAL",
+  "WEB_HOST",
+  "WEB_TOKEN",
 ] as const;
 
 export type EnvKey = (typeof ENV_KEYS)[number];
@@ -28,6 +30,8 @@ const DEFAULT_ENV: Record<EnvKey, string> = {
   WATCH_ENABLED: "true",
   PUSH_INTERVAL: "900",
   COMMIT_INTERVAL: "30",
+  WEB_HOST: "127.0.0.1",
+  WEB_TOKEN: "",
 };
 
 let explicitVault: string | null = null;
@@ -110,6 +114,8 @@ export interface Settings {
   commitInterval: number;
   pushInterval: number;
   watchEnabled: boolean;
+  webHost: string;
+  webToken: string;
 }
 
 export const settings: Settings = {
@@ -120,6 +126,8 @@ export const settings: Settings = {
   commitInterval: 30,
   pushInterval: 900,
   watchEnabled: true,
+  webHost: "127.0.0.1",
+  webToken: "",
 };
 
 export function reloadSettings(): Settings {
@@ -147,6 +155,8 @@ export function reloadSettings(): Settings {
     values.WATCH_ENABLED,
     DEFAULT_ENV.WATCH_ENABLED === "true",
   );
+  settings.webHost = values.WEB_HOST.trim() || DEFAULT_ENV.WEB_HOST;
+  settings.webToken = values.WEB_TOKEN.trim();
   return settings;
 }
 
@@ -164,6 +174,7 @@ export function readSettingsSnapshot(): SettingsSnapshot {
   const values = { ...context.values };
   if (explicitVault) values.NOTES_DIR = settings.notesDir;
   if (values.NOTION_TOKEN) values.NOTION_TOKEN = "********";
+  if (values.WEB_TOKEN) values.WEB_TOKEN = "********";
   return {
     values,
     sources: context.sources,

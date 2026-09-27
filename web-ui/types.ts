@@ -202,7 +202,9 @@ export type EnvKey =
   | "GIT_AUTO_COMMIT"
   | "WATCH_ENABLED"
   | "PUSH_INTERVAL"
-  | "COMMIT_INTERVAL";
+  | "COMMIT_INTERVAL"
+  | "WEB_HOST"
+  | "WEB_TOKEN";
 
 export interface SettingsSnapshot {
   values: Record<EnvKey, string>;

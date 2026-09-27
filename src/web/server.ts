@@ -42,6 +42,7 @@ import { DEFAULT_WHITEBOARD_ID } from "./whiteboardData.js";
 export interface WebServerOptions {
   port: number;
   open: boolean;
+  host?: string;
 }
 
 const NOTE_TYPES: NoteType[] = [
@@ -181,7 +182,11 @@ function handleReview(url: URL, res: Parameters<typeof json>[0]): void {
 
 export function createWebServer(opts: WebServerOptions): Server {
   const page = renderWebPage();
-  const base = `http://127.0.0.1:${opts.port}`;
+  const host = opts.host?.trim() || settings.webHost || "127.0.0.1";
+  const base =
+    host === "0.0.0.0" || host === "::"
+      ? `http://127.0.0.1:${opts.port}`
+      : `http://${host}:${opts.port}`;
 
   // 监听 notes 目录变化，通过 SSE 推送给前端实时刷新
   const sseClients = new Set<ServerResponse>();
@@ -235,6 +240,19 @@ export function createWebServer(opts: WebServerOptions): Server {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
     const path = url.pathname;
+
+    // 组网监听（WEB_HOST 非 127.0.0.1）时建议设置 WEB_TOKEN。
+    // token 非空则所有路由要求 Bearer 头或 ?token= 查询参数（SSE/PWA 场景）。
+    if (settings.webToken) {
+      const bearer = req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.slice("Bearer ".length)
+        : "";
+      const queryToken = url.searchParams.get("token") ?? "";
+      if (bearer !== settings.webToken && queryToken !== settings.webToken) {
+        json(res, 401, { error: "unauthorized" });
+        return;
+      }
+    }
 
     try {
       if (req.method === "GET" && path === "/") {
@@ -318,9 +336,10 @@ export function createWebServer(opts: WebServerOptions): Server {
         }
         const values: Partial<Record<(typeof ENV_KEYS)[number], string>> = {};
         for (const key of ENV_KEYS) {
-          // Tokens are configured through the environment/CLI and are never
-          // accepted from the settings UI or written back from its masked value.
-          if (key === "NOTION_TOKEN") continue;
+          // 令牌与监听地址只能通过 .env/环境变量配置，
+          // 绝不允许通过设置 UI 写入（避免网页端篡改访问控制）。
+          if (key === "NOTION_TOKEN" || key === "WEB_TOKEN" || key === "WEB_HOST")
+            continue;
           const value = (body.values as Record<string, unknown>)[key];
           if (value !== undefined) {
             if (
@@ -451,9 +470,19 @@ export function createWebServer(opts: WebServerOptions): Server {
       }
 
       if (req.method === "POST" && path === "/api/publish") {
-        if (req.headers.origin && req.headers.origin !== base) {
-          json(res, 403, { error: "invalid-origin" });
-          return;
+        // 跨站防护：origin 与请求 Host 必须同源（兼容组网 IP/0.0.0.0 监听）
+        if (req.headers.origin) {
+          let sameOrigin = false;
+          try {
+            sameOrigin =
+              new URL(req.headers.origin).host === (req.headers.host ?? "");
+          } catch {
+            sameOrigin = false;
+          }
+          if (!sameOrigin) {
+            json(res, 403, { error: "invalid-origin" });
+            return;
+          }
         }
         const body = (await readJsonBody(req)) as { id?: unknown } | null;
         if (typeof body?.id !== "string" || !body.id || body.id.length > 2000) {
@@ -602,7 +631,7 @@ export function createWebServer(opts: WebServerOptions): Server {
     void envWatcher?.close();
   });
 
-  server.listen(opts.port, "127.0.0.1", () => {
+  server.listen(opts.port, host, () => {
     if (opts.open) openBrowser(base);
   });
   return server;
