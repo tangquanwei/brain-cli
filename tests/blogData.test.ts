@@ -68,19 +68,38 @@ it("fails before writing for invalid ids, missing assets and escaped/symlink ass
     "resources\\article.md",
   ])
     expect(() => publishNote(notes, blog, id)).toThrow("not found");
-  for (const href of ["missing.png", "../../outside.png", "leak.png"]) {
+  for (const href of ["missing.png", "../../outside.png", "leak/private.png"]) {
     writeFileSync(join(dir, "outside.png"), "private");
-    if (href === "leak.png")
-      symlinkSync(join(dir, "outside.png"), join(notes, "resources/leak.png"));
+    if (href === "leak/private.png") {
+      const outside = join(dir, "outside");
+      mkdirSync(outside);
+      writeFileSync(join(outside, "private.png"), "private");
+      // Junctions exercise link rejection on Windows without symlink privileges.
+      symlinkSync(
+        outside,
+        join(notes, "resources/leak"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    }
     writeFileSync(join(notes, "resources/article.md"), `![image](${href})`);
-    expect(() => publishNote(notes, blog, "resources/article.md")).toThrow();
+    expect(() => publishNote(notes, blog, "resources/article.md")).toThrow(
+      href === "missing.png"
+        ? "Missing attachment"
+        : href === "leak/private.png"
+          ? "Symlinks"
+          : "escapes",
+    );
     expect(readdirSync(join(blog, "source/_posts"))).toEqual([]);
   }
 });
 
 it("rejects symlink output directories and overlapping vaults", () => {
   rmSync(join(blog, "source/_posts"), { recursive: true });
-  symlinkSync(notes, join(blog, "source/_posts"));
+  symlinkSync(
+    notes,
+    join(blog, "source/_posts"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
   expect(() => publishNote(notes, blog, "resources/article.md")).toThrow(
     "Symlinks",
   );

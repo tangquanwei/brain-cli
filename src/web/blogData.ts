@@ -27,6 +27,9 @@ const hash = (value: string | Buffer) =>
 
 // Check each existing component, including dangling symlinks, before creating files.
 function safePath(root: string, target: string): string {
+  // The note index uses forward slashes even on Windows. Compare native paths.
+  root = resolve(root);
+  target = resolve(target);
   const rel = relative(root, target);
   if (
     rel === ".." ||
