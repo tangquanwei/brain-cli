@@ -13,9 +13,55 @@ import type {
   SettingsSnapshot,
 } from "./types";
 
+const TOKEN_KEY = "brain-web-token";
+
+export function getToken(): string {
+  // 首次通过 URL ?token= 访问时，持久化到 localStorage 并把 token 从地址栏抹掉
+  try {
+    const url = new URL(location.href);
+    const fromUrl = url.searchParams.get("token");
+    if (fromUrl) {
+      localStorage.setItem(TOKEN_KEY, fromUrl);
+      url.searchParams.delete("token");
+      history.replaceState(null, "", url.pathname + url.search + url.hash);
+      return fromUrl;
+    }
+    return localStorage.getItem(TOKEN_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function withToken(path: string): string {
+  const token = getToken();
+  if (!token) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+  const res = await fetch(withToken(path), init);
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (res.status === 401) {
+    clearToken();
+    window.dispatchEvent(new CustomEvent("brain:unauthorized"));
+    throw new Error("unauthorized");
+  }
   if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
   return data;
 }

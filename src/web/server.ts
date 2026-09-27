@@ -242,8 +242,10 @@ export function createWebServer(opts: WebServerOptions): Server {
     const path = url.pathname;
 
     // 组网监听（WEB_HOST 非 127.0.0.1）时建议设置 WEB_TOKEN。
-    // token 非空则所有路由要求 Bearer 头或 ?token= 查询参数（SSE/PWA 场景）。
-    if (settings.webToken) {
+    // token 非空则所有 /api/* 路由要求 Bearer 头或 ?token= 查询参数（SSE/PWA 场景）。
+    // 静态页面壳（/、/app.js、/assets/*）放行，让前端弹窗引导用户输入 token，
+    // PWA“添加到主屏幕”也能在无 token 的 URL 下启动。
+    if (settings.webToken && path.startsWith("/api/")) {
       const bearer = req.headers.authorization?.startsWith("Bearer ")
         ? req.headers.authorization.slice("Bearer ".length)
         : "";

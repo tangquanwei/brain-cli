@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api } from "./api";
+import { api, withToken, setToken } from "./api";
 import { lastWhiteboard } from "./whiteboardSession";
 import { Modal } from "./components/Modal";
 import { ToastProvider, useToast } from "./components/Toast";
@@ -148,6 +148,7 @@ function Shell() {
   const [route, setRoute] = useState<Route>(parseHash);
   const [capturing, setCapturing] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const [needsToken, setNeedsToken] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("brain-sidebar-collapsed") === "1";
@@ -178,9 +179,17 @@ function Shell() {
 
   // 订阅服务端文件变化推送（SSE），实时刷新当前视图
   useEffect(() => {
-    const es = new EventSource("/api/events");
+    if (needsToken) return;
+    const es = new EventSource(withToken("/api/events"));
     es.onmessage = () => setDataVersion((v) => v + 1);
     return () => es.close();
+  }, [needsToken]);
+
+  // 服务端开启 WEB_TOKEN 后，未授权请求（401）触发令牌输入弹窗
+  useEffect(() => {
+    const onUnauthorized = () => setNeedsToken(true);
+    window.addEventListener("brain:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("brain:unauthorized", onUnauthorized);
   }, []);
 
   return (
@@ -268,7 +277,48 @@ function Shell() {
           }}
         />
       )}
+      {needsToken && <TokenGate />}
     </div>
+  );
+}
+
+function TokenGate() {
+  const { language } = useI18n();
+  const [value, setValue] = useState("");
+  const zh = language === "zh";
+  const submit = () => {
+    if (!value.trim()) return;
+    setToken(value.trim());
+    location.reload();
+  };
+  return (
+    <Modal
+      title={zh ? "🔐 输入访问令牌" : "🔐 Access Token Required"}
+      onClose={() => {
+        // 令牌未输入前不允许关闭
+      }}
+    >
+      <div className="field">
+        <label>
+          {zh
+            ? "服务端已开启 WEB_TOKEN 鉴权"
+            : "This server requires WEB_TOKEN"}
+        </label>
+        <input
+          autoFocus
+          type="password"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder="WEB_TOKEN"
+        />
+      </div>
+      <div className="actions">
+        <button className="btn primary" onClick={submit}>
+          {zh ? "进入" : "Continue"}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
