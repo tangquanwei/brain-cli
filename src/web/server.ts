@@ -271,6 +271,18 @@ export function createWebServer(opts: WebServerOptions): Server {
         res.end(page);
         return;
       }
+      if (req.method === "GET" && path === "/manifest.webmanifest") {
+        json(res, 200, {
+          name: "2ndBrain",
+          short_name: "2ndBrain",
+          start_url: ".",
+          scope: ".",
+          display: "standalone",
+          background_color: "#f5f5f7",
+          theme_color: "#007aff",
+        });
+        return;
+      }
       if (req.method === "GET" && path === "/app.js") {
         const bundle = readAppBundle();
         if (bundle === null) {
@@ -363,7 +375,9 @@ export function createWebServer(opts: WebServerOptions): Server {
               return;
             }
             if (
-              (key === "COMMIT_INTERVAL" || key === "PUSH_INTERVAL") &&
+              (key === "COMMIT_INTERVAL" ||
+                key === "PUSH_INTERVAL" ||
+                key === "PULL_INTERVAL") &&
               !/^\d+$/.test(value.trim())
             ) {
               json(res, 400, { error: `invalid-setting-${key}` });

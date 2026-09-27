@@ -6,6 +6,11 @@ export function renderWebPage(): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>2ndBrain</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23007aff'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial,sans-serif' font-size='30' font-weight='700' fill='white'%3E2B%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="2ndBrain">
 <link rel="stylesheet" href="/assets/app.css">
 <script>window.EXCALIDRAW_ASSET_PATH = "/assets/excalidraw/";</script>
 <style>

@@ -203,6 +203,7 @@ export type EnvKey =
   | "WATCH_ENABLED"
   | "PUSH_INTERVAL"
   | "COMMIT_INTERVAL"
+  | "PULL_INTERVAL"
   | "WEB_HOST"
   | "WEB_TOKEN";
 

@@ -14,6 +14,7 @@ export const ENV_KEYS = [
   "WATCH_ENABLED",
   "PUSH_INTERVAL",
   "COMMIT_INTERVAL",
+  "PULL_INTERVAL",
   "WEB_HOST",
   "WEB_TOKEN",
 ] as const;
@@ -30,6 +31,7 @@ const DEFAULT_ENV: Record<EnvKey, string> = {
   WATCH_ENABLED: "true",
   PUSH_INTERVAL: "900",
   COMMIT_INTERVAL: "30",
+  PULL_INTERVAL: "0",
   WEB_HOST: "127.0.0.1",
   WEB_TOKEN: "",
 };
@@ -114,6 +116,7 @@ export interface Settings {
   commitInterval: number;
   pushInterval: number;
   watchEnabled: boolean;
+  pullInterval: number;
   webHost: string;
   webToken: string;
 }
@@ -126,6 +129,7 @@ export const settings: Settings = {
   commitInterval: 30,
   pushInterval: 900,
   watchEnabled: true,
+  pullInterval: 0,
   webHost: "127.0.0.1",
   webToken: "",
 };
@@ -157,6 +161,10 @@ export function reloadSettings(): Settings {
   );
   settings.webHost = values.WEB_HOST.trim() || DEFAULT_ENV.WEB_HOST;
   settings.webToken = values.WEB_TOKEN.trim();
+  settings.pullInterval = parseNonNegativeInt(
+    values.PULL_INTERVAL,
+    Number(DEFAULT_ENV.PULL_INTERVAL),
+  );
   return settings;
 }
 

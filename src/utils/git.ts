@@ -178,6 +178,73 @@ export async function push(remote = "origin", branch?: string): Promise<boolean>
   return pushRepo(notesGit(), "notes", remote, branch);
 }
 
+export interface PullResult {
+  ok: boolean;
+  /** 发生冲突或错误时的人工可读说明 */
+  message?: string;
+  /** 冲突时本地提交被备份到的分支名 */
+  backupBranch?: string;
+}
+
+/**
+ * 定时同步（watcher）：git pull --rebase。
+ *
+ * 冲突策略是“绝不覆盖任何一端”：
+ * rebase 失败时回退（--abort），然后把本地未推送的提交推到
+ * backup/conflict-<主机>-<时间戳> 分支，交由人工合衹。
+ */
+export async function pullRebase(): Promise<PullResult> {
+  if (!(await isNotesRepo())) return { ok: false, message: "notes 不是 Git 仓库" };
+  const git = notesGit();
+  if (!(await hasRemoteFor(git))) return { ok: false, message: "未配置远程仓库" };
+
+  // 工作区有未提交变更时先自动提交，避免 rebase 被脏工作区阻塞
+  const dirty = await statusShortFor(git);
+  if (dirty) {
+    try {
+      await git.add(["-A"]);
+      await git.commit(autoMessage(dirty.split("\n").filter(Boolean).length));
+    } catch (e) {
+      return { ok: false, message: `拉取前自动提交失败: ${(e as Error).message}` };
+    }
+  }
+
+  try {
+    await git.raw(["pull", "--rebase", "origin"]);
+    return { ok: true };
+  } catch (e) {
+    const err = (e as Error).message;
+    // rebase 冲突：回退到 rebase 前状态
+    try {
+      await git.raw(["rebase", "--abort"]);
+    } catch {
+      // rebase 可能已完成或不在进行中，忽略
+    }
+    // 本地领先远程的提交推到备份分支，绝不丢失
+    let backupBranch: string | undefined;
+    try {
+      const host = process.env.COMPUTERNAME ?? process.env.HOSTNAME ?? "device";
+      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      backupBranch = `backup/conflict-${host}-${ts}`;
+      const branch = await currentBranchFor(git);
+      await git.push("origin", `${branch}:refs/heads/${backupBranch}`);
+      // 强制对齐远程，本地差异已在上一步备份
+      await git.raw(["fetch", "origin", branch]);
+      await git.raw(["reset", "--hard", `origin/${branch}`]);
+    } catch (backupErr) {
+      return {
+        ok: false,
+        message: `rebase 冲突且备份失败: ${(backupErr as Error).message}（原始错误: ${err}）`,
+      };
+    }
+    return {
+      ok: false,
+      backupBranch,
+      message: `rebase 冲突，本地提交已备份到 ${backupBranch}，本机已对齐远程。请人工合衹备份分支。`,
+    };
+  }
+}
+
 export async function backup(message?: string, doPush = false): Promise<void> {
   if (!(await isNotesRepo())) {
     log(`  ${c.error("❌ notes 目录不是 Git 仓库，无法备份")}`);

@@ -28,6 +28,7 @@ export function runWatchStatus(): void {
   if (info.pid !== null) rows.push(["PID", info.pid]);
   rows.push(["Commit 间隔", `${info.commitInterval}s`]);
   rows.push(["Push 间隔", `${info.pushInterval}s`]);
+  rows.push(["Pull 间隔", info.pullInterval > 0 ? `${info.pullInterval}s` : "禁用"]);
   rows.push(["日志文件", info.logFile]);
   table({ title: "🤖 Watcher 状态", rows });
 

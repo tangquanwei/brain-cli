@@ -10,7 +10,7 @@ import { resolve } from "node:path";
 import { REPO_ROOT } from "../utils/paths.js";
 import { settings, ensureNotesDir } from "../config.js";
 import { ChangeDetector } from "./detector.js";
-import { autoCommit, hasRemote, isNotesRepo, push } from "../utils/git.js";
+import { autoCommit, hasRemote, isNotesRepo, pullRebase, push } from "../utils/git.js";
 
 const LOG_DIR = resolve(REPO_ROOT, "logs");
 const LOG_FILE = resolve(LOG_DIR, "watcher.log");
@@ -70,7 +70,7 @@ export async function runDaemon(): Promise<void> {
   writePid();
   logLine(
     "INFO",
-    `🚀 Watcher 启动 (PID=${process.pid}) commit=${settings.commitInterval}s push=${settings.pushInterval}s`,
+    `🚀 Watcher 启动 (PID=${process.pid}) commit=${settings.commitInterval}s push=${settings.pushInterval}s pull=${settings.pullInterval}s`,
   );
 
   const detector = new ChangeDetector(settings.notesDir);
@@ -79,6 +79,7 @@ export async function runDaemon(): Promise<void> {
   let stopRequested = false;
   let lastCommit = Date.now();
   let lastPush = Date.now();
+  let lastPull = Date.now();
 
   const doCommit = async () => {
     const changed = detector.flush();
@@ -107,6 +108,23 @@ export async function runDaemon(): Promise<void> {
     }
   };
 
+  const doPull = async () => {
+    if (!(await isNotesRepo())) return;
+    if (!(await hasRemote())) return;
+    try {
+      const result = await pullRebase();
+      if (result.ok) {
+        logLine("INFO", "已同步远程更新 (pull --rebase)");
+      } else if (result.backupBranch) {
+        logLine("WARN", `[pull] ${result.message}`);
+      } else {
+        logLine("ERROR", `[pull] ${result.message}`);
+      }
+    } catch (e) {
+      logLine("ERROR", `[pull] ${(e as Error).message}`);
+    }
+  };
+
   const onSignal = (sig: NodeJS.Signals) => {
     logLine("INFO", `收到 ${sig}，正在退出...`);
     stopRequested = true;
@@ -130,6 +148,13 @@ export async function runDaemon(): Promise<void> {
       ) {
         await doPush();
         lastPush = Date.now();
+      }
+      if (
+        settings.pullInterval > 0 &&
+        now - lastPull >= settings.pullInterval * 1000
+      ) {
+        await doPull();
+        lastPull = Date.now();
       }
       await new Promise((r) => setTimeout(r, 10_000));
     }
@@ -165,6 +190,7 @@ export interface WatcherStatus {
   logFile: string;
   commitInterval: number;
   pushInterval: number;
+  pullInterval: number;
   lastLogs: string[];
 }
 
@@ -185,6 +211,7 @@ export function watcherStatus(): WatcherStatus {
     logFile: LOG_FILE,
     commitInterval: settings.commitInterval,
     pushInterval: settings.pushInterval,
+    pullInterval: settings.pullInterval,
     lastLogs,
   };
 }
